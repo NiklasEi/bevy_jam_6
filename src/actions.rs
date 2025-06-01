@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::prelude::*;
 use bevy_enhanced_input::prelude::*;
 
@@ -48,7 +50,54 @@ struct MoveLeft;
 struct MoveRight;
 
 #[derive(Component, Debug)]
+pub enum Orientation {
+    Up,
+    Right,
+    Down,
+    Left,
+}
+
+impl Orientation {
+    pub fn next(&mut self, next: &NextMove) {
+        match next.0 {
+            MoveDirection::Straight => (),
+            MoveDirection::Left => match self {
+                Orientation::Up => *self = Orientation::Left,
+                Orientation::Left => *self = Orientation::Down,
+                Orientation::Down => *self = Orientation::Right,
+                Orientation::Right => *self = Orientation::Up,
+            },
+            MoveDirection::Right => match self {
+                Orientation::Up => *self = Orientation::Right,
+                Orientation::Right => *self = Orientation::Down,
+                Orientation::Down => *self = Orientation::Left,
+                Orientation::Left => *self = Orientation::Up,
+            },
+        }
+    }
+
+    pub fn direction(&self) -> Vec3 {
+        match self {
+            Orientation::Up => Vec3::Y,
+            Orientation::Right => Vec3::X,
+            Orientation::Down => -Vec3::Y,
+            Orientation::Left => -Vec3::X,
+        }
+    }
+}
+
+#[derive(Component, Debug)]
 pub struct NextMove(pub MoveDirection);
+
+impl NextMove {
+    pub fn z_angle(&self) -> f32 {
+        match self.0 {
+            MoveDirection::Straight => 0.,
+            MoveDirection::Right => -PI / 2.,
+            MoveDirection::Left => PI / 2.,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum MoveDirection {

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::actions::{MoveDirection, NextMove, Player};
+use crate::actions::{MoveDirection, NextMove, Orientation, Player};
 use crate::loading::TextureAssets;
 use crate::movement::MovementTimer;
 use crate::GameState;
@@ -21,6 +21,9 @@ impl Plugin for PlayerPlugin {
     }
 }
 
+#[derive(Component)]
+pub struct SnakeHead;
+
 fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
     commands.spawn((
         Sprite::from_atlas_image(
@@ -34,6 +37,8 @@ fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
         NextMove(MoveDirection::Straight),
         Actions::<Player>::default(),
         MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
+        SnakeHead,
+        Orientation::Up,
     ));
 }
 
@@ -59,6 +64,6 @@ fn move_player(
     mut player_query: Query<(&mut Transform, &NextMove), With<Actions<Player>>>,
 ) {
     for (mut player_transform, next_move) in &mut player_query {
-        warn!("next move: {next_move:?}");
+        // warn!("next move: {next_move:?}");
     }
 }

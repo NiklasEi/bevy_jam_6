@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)]
 
 mod actions;
+mod grid;
 mod loading;
 mod menu;
 mod movement;
@@ -16,6 +17,7 @@ use bevy::app::App;
 #[cfg(debug_assertions)]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
+use grid::GridPlugin;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -41,6 +43,7 @@ impl Plugin for GamePlugin {
             ActionsPlugin,
             PlayerPlugin,
             MovementPlugin,
+            GridPlugin,
         ));
 
         #[cfg(debug_assertions)]
