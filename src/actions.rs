@@ -51,7 +51,7 @@ struct MoveLeft;
 #[input_action(output = bool)]
 struct MoveRight;
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone, Copy)]
 pub enum Orientation {
     Up,
     Right,
@@ -101,7 +101,7 @@ impl NextMove {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum MoveDirection {
     Left,
     Straight,

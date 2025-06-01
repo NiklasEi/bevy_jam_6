@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use crate::actions::{MoveDirection, NextMove, Orientation, Player};
+use crate::following::Trailing;
 use crate::grid::TILE_SIZE;
 use crate::loading::TextureAssets;
 use crate::movement::MovementTimer;
@@ -25,22 +26,27 @@ impl Plugin for PlayerPlugin {
 #[derive(Component)]
 pub struct SnakeHead;
 
+#[derive(Component)]
+pub struct SnakeTail;
+
 fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
-    commands.spawn((
-        Sprite::from_atlas_image(
-            textures.head.clone(),
-            TextureAtlas {
-                index: 0,
-                layout: textures.head_layout.clone(),
-            },
-        ),
-        Transform::from_translation(Vec3::new(0., 0., 1.)),
-        NextMove(MoveDirection::Straight),
-        Actions::<Player>::default(),
-        MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
-        SnakeHead,
-        Orientation::Up,
-    ));
+    let head = commands
+        .spawn((
+            Sprite::from_atlas_image(
+                textures.head.clone(),
+                TextureAtlas {
+                    index: 0,
+                    layout: textures.head_layout.clone(),
+                },
+            ),
+            Transform::from_translation(Vec3::new(0., 0., 1.)),
+            NextMove(MoveDirection::Straight),
+            Actions::<Player>::default(),
+            MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
+            SnakeHead,
+            Orientation::Up,
+        ))
+        .id();
     commands.spawn((
         Sprite::from_atlas_image(
             textures.tail.clone(),
@@ -53,6 +59,8 @@ fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
         NextMove(MoveDirection::Straight),
         MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
         Orientation::Up,
+        Trailing(head),
+        SnakeTail,
     ));
 }
 

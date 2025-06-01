@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)]
 
 mod actions;
+mod following;
 mod grid;
 mod loading;
 mod menu;
