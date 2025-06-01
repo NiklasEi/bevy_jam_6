@@ -145,3 +145,6 @@ rustflags = [
 # In most cases the gains are negligible, but if you are on macos and have slow compile times you should see significant gains.
 # [profile.dev]
 # debug = 1
+
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"']
