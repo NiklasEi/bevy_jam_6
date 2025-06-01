@@ -101,7 +101,7 @@ impl NextMove {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MoveDirection {
     Left,
     Straight,

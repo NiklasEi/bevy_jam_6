@@ -52,13 +52,23 @@ fn player_movement(
         timer.0.tick(time.delta());
         if timer.0.just_finished() {
             if let Some(atlas) = sprite.texture_atlas.as_mut() {
-                let row = atlas.index / ANIMATION_FRAMES;
+                let mut row = atlas.index / ANIMATION_FRAMES;
                 if 0 == (atlas.index + 1) % ANIMATION_FRAMES {
                     orientation.next(&next_move);
                     info!("moving towards {:?}", orientation.direction());
                     transform.translation += orientation.direction() * TILE_SIZE;
                     transform.rotate_z(next_move.z_angle());
                     next_move.0 = new_move_direction;
+                    row = if new_move_direction == MoveDirection::Straight {
+                        0
+                    } else {
+                        1
+                    };
+                    if new_move_direction == MoveDirection::Right {
+                        sprite.flip_x = true;
+                    } else {
+                        sprite.flip_x = false;
+                    }
                 }
                 atlas.index = row * ANIMATION_FRAMES + (atlas.index + 1) % ANIMATION_FRAMES
             }
