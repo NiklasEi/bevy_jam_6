@@ -1,13 +1,15 @@
 use std::time::Duration;
 
-use crate::actions::{MoveDirection, NextMove, Orientation, Player};
+use crate::actions::{MoveDirection, NextMove, Player};
 use crate::following::Trailing;
-use crate::grid::TILE_SIZE;
+use crate::grid::random_placement;
 use crate::loading::TextureAssets;
 use crate::movement::MovementTimer;
 use crate::GameState;
 use bevy::prelude::*;
 use bevy_enhanced_input::prelude::Actions;
+use bevy_rand::global::GlobalEntropy;
+use bevy_rand::prelude::ChaCha8Rng;
 
 pub struct PlayerPlugin;
 
@@ -29,7 +31,14 @@ pub struct SnakeHead;
 #[derive(Component)]
 pub struct SnakeTail;
 
-fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
+fn spawn_player(
+    mut commands: Commands,
+    textures: Res<TextureAssets>,
+    mut rng: GlobalEntropy<ChaCha8Rng>,
+) {
+    let mut placements = random_placement(3, &mut rng);
+    info!("Starting positions: {placements:?}");
+    let mut placement = placements.pop().unwrap();
     let head = commands
         .spawn((
             Sprite::from_atlas_image(
@@ -39,14 +48,32 @@ fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
                     layout: textures.head_layout.clone(),
                 },
             ),
-            Transform::from_translation(Vec3::new(0., 0., 1.)),
-            NextMove(MoveDirection::Straight),
+            placement.2,
+            NextMove(placement.1),
             Actions::<Player>::default(),
             MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
             SnakeHead,
-            Orientation::Up,
+            placement.0,
         ))
         .id();
+    placement = placements.pop().unwrap();
+    let body = commands
+        .spawn((
+            Sprite::from_atlas_image(
+                textures.body.clone(),
+                TextureAtlas {
+                    index: 0,
+                    layout: textures.body_layout.clone(),
+                },
+            ),
+            placement.2,
+            NextMove(placement.1),
+            MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
+            placement.0,
+            Trailing(head),
+        ))
+        .id();
+    placement = placements.pop().unwrap();
     commands.spawn((
         Sprite::from_atlas_image(
             textures.tail.clone(),
@@ -55,11 +82,11 @@ fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
                 layout: textures.tail_layout.clone(),
             },
         ),
-        Transform::from_translation(Vec3::new(0., -TILE_SIZE, 1.)),
-        NextMove(MoveDirection::Straight),
+        placement.2,
+        NextMove(placement.1),
         MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
-        Orientation::Up,
-        Trailing(head),
+        placement.0,
+        Trailing(body),
         SnakeTail,
     ));
 }

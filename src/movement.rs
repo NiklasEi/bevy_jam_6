@@ -6,6 +6,7 @@ use bevy::{
 use crate::{
     actions::{MoveDirection, NextMove, Orientation},
     following::Trailing,
+    grid::TILE_SIZE,
     player::{SnakeHead, SnakeTail},
     GameState,
 };
@@ -55,7 +56,7 @@ fn player_movement(
                 if 0 == (atlas.index + 1) % ANIMATION_FRAMES {
                     orientation.next(&next_move);
                     info!("moving towards {:?}", orientation.direction());
-                    transform.translation += orientation.direction() * 64.;
+                    transform.translation += orientation.direction() * TILE_SIZE;
                     transform.rotate_z(next_move.z_angle());
                     next_move.0 = new_move_direction;
                 }

@@ -82,6 +82,7 @@ image = { version = "0.25", default-features = false }
 ## This greatly improves WGPU's performance due to its heavy use of trace! calls
 log = { version = "0.4", features = ["max_level_debug", "release_max_level_warn"] }
 bevy_enhanced_input = "0.12.0"
+bevy_rand = { version = "0.11.0", features = ["wyrand", "rand_chacha"]}
 
 [build-dependencies]
 embed-resource = "1"
