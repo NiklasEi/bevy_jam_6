@@ -179,6 +179,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: set up config.toml
+        run: mv .cargo/ci.config.toml .cargo/config.toml
       - name: Install rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
