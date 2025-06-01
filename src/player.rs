@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use crate::actions::{MoveDirection, NextMove, Orientation, Player};
+use crate::grid::TILE_SIZE;
 use crate::loading::TextureAssets;
 use crate::movement::MovementTimer;
 use crate::GameState;
@@ -38,6 +39,19 @@ fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
         Actions::<Player>::default(),
         MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
         SnakeHead,
+        Orientation::Up,
+    ));
+    commands.spawn((
+        Sprite::from_atlas_image(
+            textures.tail.clone(),
+            TextureAtlas {
+                index: 0,
+                layout: textures.tail_layout.clone(),
+            },
+        ),
+        Transform::from_translation(Vec3::new(0., -TILE_SIZE, 1.)),
+        NextMove(MoveDirection::Straight),
+        MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
         Orientation::Up,
     ));
 }

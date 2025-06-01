@@ -3,6 +3,8 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy_enhanced_input::prelude::*;
 
+use crate::player::SnakeHead;
+
 pub struct ActionsPlugin;
 
 // This plugin listens for keyboard input and converts the input into Actions.
@@ -106,7 +108,10 @@ pub enum MoveDirection {
     Right,
 }
 
-fn next_move_straight(trigger: Trigger<Fired<MoveStraight>>, players: Query<&mut NextMove>) {
+fn next_move_straight(
+    trigger: Trigger<Fired<MoveStraight>>,
+    players: Query<&mut NextMove, With<SnakeHead>>,
+) {
     if trigger.value {
         for mut next_move in players {
             next_move.0 = MoveDirection::Straight;
@@ -114,7 +119,10 @@ fn next_move_straight(trigger: Trigger<Fired<MoveStraight>>, players: Query<&mut
     }
 }
 
-fn next_move_left(trigger: Trigger<Fired<MoveLeft>>, players: Query<&mut NextMove>) {
+fn next_move_left(
+    trigger: Trigger<Fired<MoveLeft>>,
+    players: Query<&mut NextMove, With<SnakeHead>>,
+) {
     if trigger.value {
         for mut next_move in players {
             next_move.0 = MoveDirection::Left;
@@ -122,7 +130,10 @@ fn next_move_left(trigger: Trigger<Fired<MoveLeft>>, players: Query<&mut NextMov
     }
 }
 
-fn next_move_right(trigger: Trigger<Fired<MoveRight>>, players: Query<&mut NextMove>) {
+fn next_move_right(
+    trigger: Trigger<Fired<MoveRight>>,
+    players: Query<&mut NextMove, With<SnakeHead>>,
+) {
     if trigger.value {
         for mut next_move in players {
             next_move.0 = MoveDirection::Right;

@@ -29,4 +29,8 @@ pub struct TextureAssets {
     pub head: Handle<Image>,
     #[asset(texture_atlas_layout(tile_size_x = 64, tile_size_y = 64, columns = 9, rows = 2))]
     pub head_layout: Handle<TextureAtlasLayout>,
+    #[asset(path = "textures/tail.png")]
+    pub tail: Handle<Image>,
+    #[asset(texture_atlas_layout(tile_size_x = 64, tile_size_y = 64, columns = 9, rows = 2))]
+    pub tail_layout: Handle<TextureAtlasLayout>,
 }
