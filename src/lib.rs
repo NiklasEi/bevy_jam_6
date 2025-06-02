@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)]
 
 mod actions;
+mod audio;
 mod following;
 mod grid;
 mod loading;
@@ -14,6 +15,7 @@ use crate::menu::MenuPlugin;
 use crate::movement::MovementPlugin;
 use crate::player::PlayerPlugin;
 
+use audio::InternalAudioPlugin;
 use bevy::app::App;
 #[cfg(debug_assertions)]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
@@ -45,6 +47,7 @@ impl Plugin for GamePlugin {
             PlayerPlugin,
             MovementPlugin,
             GridPlugin,
+            InternalAudioPlugin,
         ));
 
         #[cfg(debug_assertions)]

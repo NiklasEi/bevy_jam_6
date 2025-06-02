@@ -12,13 +12,18 @@ impl Plugin for LoadingPlugin {
         app.add_loading_state(
             LoadingState::new(GameState::Loading)
                 .continue_to_state(GameState::Menu)
+                .load_collection::<AudioAssets>()
                 .load_collection::<TextureAssets>(),
         );
     }
 }
 
-// the following asset collections will be loaded during the State `GameState::Loading`
-// when done loading, they will be inserted as resources (see <https://github.com/NiklasEi/bevy_asset_loader>)
+#[derive(AssetCollection, Resource)]
+pub struct AudioAssets {
+    #[asset(path = "audio/background.ogg")]
+    pub background: Handle<AudioSource>,
+}
+
 #[derive(AssetCollection, Resource)]
 pub struct TextureAssets {
     #[asset(path = "textures/bevy.png")]
@@ -29,10 +34,18 @@ pub struct TextureAssets {
     pub head: Handle<Image>,
     #[asset(texture_atlas_layout(tile_size_x = 64, tile_size_y = 64, columns = 9, rows = 2))]
     pub head_layout: Handle<TextureAtlasLayout>,
+    #[asset(path = "textures/head2.png")]
+    pub head2: Handle<Image>,
+    #[asset(texture_atlas_layout(tile_size_x = 64, tile_size_y = 64, columns = 9, rows = 2))]
+    pub head2_layout: Handle<TextureAtlasLayout>,
     #[asset(path = "textures/tail.png")]
     pub tail: Handle<Image>,
     #[asset(texture_atlas_layout(tile_size_x = 64, tile_size_y = 64, columns = 9, rows = 2))]
     pub tail_layout: Handle<TextureAtlasLayout>,
+    #[asset(path = "textures/tail2.png")]
+    pub tail2: Handle<Image>,
+    #[asset(texture_atlas_layout(tile_size_x = 64, tile_size_y = 64, columns = 9, rows = 2))]
+    pub tail2_layout: Handle<TextureAtlasLayout>,
     #[asset(path = "textures/body.png")]
     pub body: Handle<Image>,
     #[asset(texture_atlas_layout(tile_size_x = 64, tile_size_y = 64, columns = 9, rows = 2))]

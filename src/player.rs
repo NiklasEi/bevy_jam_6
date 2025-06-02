@@ -36,7 +36,7 @@ fn spawn_player(
     textures: Res<TextureAssets>,
     mut rng: GlobalEntropy<ChaCha8Rng>,
 ) {
-    let mut placements = random_placement(3, &mut rng);
+    let mut placements = random_placement(4, &mut rng);
     info!("Starting positions: {placements:?}");
     let mut placement = placements.pop().unwrap();
     let head = commands
@@ -57,13 +57,13 @@ fn spawn_player(
         ))
         .id();
     placement = placements.pop().unwrap();
-    let body = commands
+    let head2 = commands
         .spawn((
             Sprite::from_atlas_image(
-                textures.body.clone(),
+                textures.head2.clone(),
                 TextureAtlas {
                     index: 0,
-                    layout: textures.body_layout.clone(),
+                    layout: textures.head2_layout.clone(),
                 },
             ),
             placement.2,
@@ -71,6 +71,23 @@ fn spawn_player(
             MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
             placement.0,
             Trailing(head),
+        ))
+        .id();
+    placement = placements.pop().unwrap();
+    let tail2 = commands
+        .spawn((
+            Sprite::from_atlas_image(
+                textures.tail2.clone(),
+                TextureAtlas {
+                    index: 0,
+                    layout: textures.tail2_layout.clone(),
+                },
+            ),
+            placement.2,
+            NextMove(placement.1),
+            MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
+            placement.0,
+            Trailing(head2),
         ))
         .id();
     placement = placements.pop().unwrap();
@@ -86,7 +103,7 @@ fn spawn_player(
         NextMove(placement.1),
         MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
         placement.0,
-        Trailing(body),
+        Trailing(tail2),
         SnakeTail,
     ));
 }
