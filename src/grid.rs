@@ -2,17 +2,22 @@ use bevy::prelude::*;
 use bevy_rand::prelude::*;
 use rand::Rng;
 
-use crate::actions::{MoveDirection, NextMove, Orientation};
+use crate::{
+    actions::{MoveDirection, NextMove, Orientation},
+    loading::TextureAssets,
+    GameState,
+};
 
 pub struct GridPlugin;
 
 pub const GRID_WIDTH: usize = 16;
-pub const GRID_HEIGHT: usize = 12;
+pub const GRID_HEIGHT: usize = 10;
 pub const TILE_SIZE: f32 = 64.;
 
 impl Plugin for GridPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(EntropyPlugin::<ChaCha8Rng>::default());
+        app.add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
+            .add_systems(OnEnter(GameState::Playing), spawn_grid);
     }
 }
 
@@ -48,4 +53,19 @@ pub fn random_placement(
     }
 
     placements
+}
+
+fn spawn_grid(mut commands: Commands, textures: Res<TextureAssets>) {
+    for column in 0..GRID_WIDTH {
+        for row in 1..=GRID_HEIGHT {
+            commands.spawn((
+                Sprite::from_image(textures.tile.clone()),
+                Transform::from_translation(Vec3::new(
+                    (-(GRID_WIDTH as f32) / 2. + column as f32) * TILE_SIZE,
+                    (GRID_HEIGHT as f32 / 2. - row as f32) * TILE_SIZE,
+                    0.,
+                )),
+            ));
+        }
+    }
 }
