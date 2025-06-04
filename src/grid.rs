@@ -27,7 +27,7 @@ pub fn random_placement(
 ) -> Vec<(Orientation, MoveDirection, Transform)> {
     let mut placements = vec![];
 
-    let curves = vec![rng.gen_range(0..length - 1), rng.gen_range(0..length - 1)];
+    let curves = [rng.gen_range(0..length - 1), rng.gen_range(0..length - 1)];
 
     let mut next_orientation = Orientation::Up;
     let mut next_position = Vec3::new(0., 0., 1.);

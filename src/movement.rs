@@ -1,13 +1,10 @@
-use bevy::{
-    platform::{collections::HashMap, hash::Hashed},
-    prelude::*,
-};
+use bevy::{platform::collections::HashMap, prelude::*};
 
 use crate::{
     actions::{MoveDirection, NextMove, Orientation},
     following::Trailing,
     grid::{wrap_translate, TILE_SIZE},
-    player::{SnakeHead, SnakeTail},
+    player::{SnakeTail, StuckOnce},
     GameState,
 };
 
@@ -25,6 +22,7 @@ impl Plugin for MovementPlugin {
 pub struct MovementTimer(pub Timer);
 
 fn player_movement(
+    mut commands: Commands,
     time: Res<Time>,
     tail: Query<Entity, With<SnakeTail>>,
     mut player_piece: Query<(
@@ -34,7 +32,9 @@ fn player_movement(
         &mut Transform,
         &mut NextMove,
         &mut Orientation,
+        &mut Visibility,
         Option<&Trailing>,
+        Option<&StuckOnce>,
     )>,
 ) -> Result {
     fn update_snake_piece(
@@ -45,16 +45,23 @@ fn player_movement(
             &mut Transform,
             &mut NextMove,
             &mut Orientation,
+            &mut Visibility,
+            Option<&StuckOnce>,
         ),
         new_move_direction: MoveDirection,
-    ) -> Result {
-        let (timer, sprite, transform, next_move, orientation) = piece;
+    ) -> Result<bool> {
+        let (timer, sprite, transform, next_move, orientation, visibility, maybe_stuck) = piece;
         timer.0.tick(time.delta());
         if timer.0.just_finished() {
             if let Some(atlas) = sprite.texture_atlas.as_mut() {
                 let mut row = atlas.index / ANIMATION_FRAMES;
                 if 0 == (atlas.index + 1) % ANIMATION_FRAMES {
-                    orientation.next(&next_move);
+                    if maybe_stuck.is_some() {
+                        atlas.index = row * ANIMATION_FRAMES + (atlas.index + 1) % ANIMATION_FRAMES;
+                        return Ok(true);
+                    }
+                    *visibility = Visibility::Inherited;
+                    orientation.next(next_move);
                     info!("moving towards {:?}", orientation.direction());
                     transform.translation += orientation.direction() * TILE_SIZE;
                     wrap_translate(&mut transform.translation);
@@ -65,31 +72,36 @@ fn player_movement(
                     } else {
                         1
                     };
-                    if new_move_direction == MoveDirection::Right {
-                        sprite.flip_x = true;
-                    } else {
-                        sprite.flip_x = false;
-                    }
+                    sprite.flip_x = new_move_direction == MoveDirection::Right;
                 }
                 atlas.index = row * ANIMATION_FRAMES + (atlas.index + 1) % ANIMATION_FRAMES
             }
         }
 
-        Ok(())
+        Ok(false)
     }
 
     let mut directions = HashMap::new();
     player_piece
         .iter()
-        .for_each(|(entity, _, _, _, next_move, _, _)| {
+        .for_each(|(entity, _, _, _, next_move, _, _, _, _)| {
             directions.insert(entity, next_move.0);
         });
 
     let mut next_entity = Some(tail.single()?);
 
     while let Some(entity) = next_entity {
-        let (_, mut timer, mut sprite, mut transform, mut next_move, mut orientation, trailing) =
-            player_piece.get_mut(entity)?;
+        let (
+            part,
+            mut timer,
+            mut sprite,
+            mut transform,
+            mut next_move,
+            mut orientation,
+            mut visibility,
+            trailing,
+            maybe_stuck,
+        ) = player_piece.get_mut(entity)?;
         let new_move_direction = if let Some(trailing) = trailing {
             next_entity = Some(trailing.0);
             *directions
@@ -99,7 +111,7 @@ fn player_movement(
             next_entity = None;
             MoveDirection::Straight
         };
-        update_snake_piece(
+        if update_snake_piece(
             &time,
             (
                 &mut timer,
@@ -107,9 +119,13 @@ fn player_movement(
                 &mut transform,
                 &mut next_move,
                 &mut orientation,
+                &mut visibility,
+                maybe_stuck,
             ),
             new_move_direction,
-        )?;
+        )? {
+            commands.entity(part).remove::<StuckOnce>();
+        }
     }
 
     Ok(())

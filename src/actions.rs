@@ -88,7 +88,7 @@ impl Orientation {
     }
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone)]
 pub struct NextMove(pub MoveDirection);
 
 impl NextMove {

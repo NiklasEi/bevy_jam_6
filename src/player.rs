@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::actions::{MoveDirection, NextMove, Player};
+use crate::actions::{MoveDirection, NextMove, Orientation, Player};
 use crate::following::Trailing;
 use crate::grid::random_placement;
 use crate::loading::TextureAssets;
@@ -17,10 +17,11 @@ pub struct PlayerPlugin;
 /// Player logic is only active during the State `GameState::Playing`
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), spawn_player)
+        app.insert_resource(GrowthTimer(Timer::from_seconds(5., TimerMode::Repeating)))
+            .add_systems(OnEnter(GameState::Playing), spawn_player)
             .add_systems(
                 Update,
-                (move_player, update_player_direction).run_if(in_state(GameState::Playing)),
+                (update_player_direction, grow_snake).run_if(in_state(GameState::Playing)),
             );
     }
 }
@@ -29,7 +30,13 @@ impl Plugin for PlayerPlugin {
 pub struct SnakeHead;
 
 #[derive(Component)]
+pub struct SnakeHeadInner;
+
+#[derive(Component)]
 pub struct SnakeTail;
+
+#[derive(Component)]
+pub struct SnakeTailInner;
 
 fn spawn_player(
     mut commands: Commands,
@@ -70,6 +77,7 @@ fn spawn_player(
             NextMove(placement.1),
             MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
             placement.0,
+            SnakeHeadInner,
             Trailing(head),
         ))
         .id();
@@ -87,6 +95,7 @@ fn spawn_player(
             NextMove(placement.1),
             MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
             placement.0,
+            SnakeTailInner,
             Trailing(head2),
         ))
         .id();
@@ -125,11 +134,65 @@ fn update_player_direction(player: Query<(&NextMove, &mut Sprite), Changed<NextM
     }
 }
 
-fn move_player(
+#[derive(Resource)]
+struct GrowthTimer(Timer);
+
+/// Marker to not move in the next round to make space for a new snake part
+#[derive(Component)]
+pub struct StuckOnce;
+
+fn grow_snake(
+    mut commands: Commands,
+    textures: Res<TextureAssets>,
+    inner_tail: Query<
+        (
+            Entity,
+            &Transform,
+            &Orientation,
+            &NextMove,
+            &Sprite,
+            &MovementTimer,
+            &Trailing,
+        ),
+        With<SnakeTailInner>,
+    >,
+    tail: Query<Entity, (With<SnakeTail>, Without<SnakeTailInner>)>,
     time: Res<Time>,
-    mut player_query: Query<(&mut Transform, &NextMove), With<Actions<Player>>>,
-) {
-    for (mut player_transform, next_move) in &mut player_query {
-        // warn!("next move: {next_move:?}");
+    mut timer: ResMut<GrowthTimer>,
+) -> Result {
+    timer.0.tick(time.delta());
+    if timer.0.just_finished() {
+        let (inner_tail, transform, orientation, next_move, sprite, movement_timer, trailing) =
+            inner_tail.single()?;
+        let new_body_part = commands
+            .spawn((
+                Sprite::from_atlas_image(
+                    textures.body.clone(),
+                    TextureAtlas {
+                        index: sprite.texture_atlas.as_ref().unwrap().index,
+                        layout: textures.body_layout.clone(),
+                    },
+                ),
+                *orientation,
+                next_move.clone(),
+                {
+                    let current_time = movement_timer.0.elapsed();
+                    let mut timer =
+                        MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating));
+                    timer.0.tick(current_time);
+
+                    timer
+                },
+                *transform,
+                Trailing(trailing.0),
+                Visibility::Hidden,
+            ))
+            .id();
+        commands
+            .entity(inner_tail)
+            .insert((Trailing(new_body_part), StuckOnce));
+        commands.entity(tail.single()?).insert(StuckOnce);
     }
+
+    Ok(())
 }
