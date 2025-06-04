@@ -6,7 +6,7 @@ use bevy::{
 use crate::{
     actions::{MoveDirection, NextMove, Orientation},
     following::Trailing,
-    grid::TILE_SIZE,
+    grid::{wrap_translate, TILE_SIZE},
     player::{SnakeHead, SnakeTail},
     GameState,
 };
@@ -57,6 +57,7 @@ fn player_movement(
                     orientation.next(&next_move);
                     info!("moving towards {:?}", orientation.direction());
                     transform.translation += orientation.direction() * TILE_SIZE;
+                    wrap_translate(&mut transform.translation);
                     transform.rotate_z(next_move.z_angle());
                     next_move.0 = new_move_direction;
                     row = if new_move_direction == MoveDirection::Straight {

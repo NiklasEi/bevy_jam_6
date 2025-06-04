@@ -50,9 +50,23 @@ pub fn random_placement(
         next_rotation += NextMove(direction).z_angle();
         next_orientation.next(&NextMove(direction));
         next_position += next_orientation.direction() * TILE_SIZE;
+        wrap_translate(&mut next_position);
     }
 
     placements
+}
+
+pub fn wrap_translate(translate: &mut Vec3) {
+    if translate.x > (-(GRID_WIDTH as f32) / 2. + GRID_WIDTH as f32 - 0.5) * TILE_SIZE {
+        translate.x -= GRID_WIDTH as f32 * TILE_SIZE;
+    } else if translate.x < (-(GRID_WIDTH as f32) / 2. - 0.5) * TILE_SIZE {
+        translate.x += GRID_WIDTH as f32 * TILE_SIZE;
+    }
+    if translate.y > (GRID_HEIGHT as f32 / 2. - 0.5) * TILE_SIZE {
+        translate.y -= GRID_HEIGHT as f32 * TILE_SIZE;
+    } else if translate.y < (GRID_HEIGHT as f32 / 2. - GRID_HEIGHT as f32 - 0.5) * TILE_SIZE {
+        translate.y += GRID_HEIGHT as f32 * TILE_SIZE;
+    }
 }
 
 fn spawn_grid(mut commands: Commands, textures: Res<TextureAssets>) {
