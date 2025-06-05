@@ -61,7 +61,6 @@ fn player_movement(
             if let Some(atlas) = sprite.texture_atlas.as_mut() {
                 let mut row = atlas.index / ANIMATION_FRAMES;
                 if 0 == (atlas.index + 1) % ANIMATION_FRAMES {
-                    info!("next tile");
                     if maybe_stuck.is_some() {
                         atlas.index = row * ANIMATION_FRAMES + (atlas.index + 1) % ANIMATION_FRAMES;
                         return Ok(true);
