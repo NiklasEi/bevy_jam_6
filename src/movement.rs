@@ -4,7 +4,7 @@ use crate::{
     actions::{MoveDirection, NextMove, Orientation},
     following::Trailing,
     grid::{wrap_translate, TILE_SIZE},
-    player::{SnakeTail, StuckOnce},
+    player::{GridPosition, SnakeTail, StuckOnce},
     AppSystems, GameState,
 };
 
@@ -38,24 +38,38 @@ fn player_movement(
         &mut NextMove,
         &mut Orientation,
         &mut Visibility,
+        &GridPosition,
         Option<&Trailing>,
         Option<&StuckOnce>,
     )>,
 ) -> Result {
     fn update_snake_piece(
         time: &Time,
+        commands: &mut Commands,
         piece: (
+            Entity,
             &mut MovementTimer,
             &mut Sprite,
             &mut Transform,
             &mut NextMove,
             &mut Orientation,
             &mut Visibility,
+            &GridPosition,
             Option<&StuckOnce>,
         ),
         new_move_direction: MoveDirection,
     ) -> Result<bool> {
-        let (timer, sprite, transform, next_move, orientation, visibility, maybe_stuck) = piece;
+        let (
+            entity,
+            timer,
+            sprite,
+            transform,
+            next_move,
+            orientation,
+            visibility,
+            position,
+            maybe_stuck,
+        ) = piece;
         timer.0.tick(time.delta());
         if timer.0.just_finished() {
             if let Some(atlas) = sprite.texture_atlas.as_mut() {
@@ -67,6 +81,8 @@ fn player_movement(
                     }
                     *visibility = Visibility::Inherited;
                     orientation.next(next_move);
+                    let new_position = orientation.next_position(position);
+                    commands.entity(entity).insert(new_position);
                     transform.translation += orientation.direction() * TILE_SIZE;
                     wrap_translate(&mut transform.translation);
                     transform.rotate_z(next_move.z_angle());
@@ -88,7 +104,7 @@ fn player_movement(
     let mut directions = HashMap::new();
     player_piece
         .iter()
-        .for_each(|(entity, _, _, _, next_move, _, _, _, _)| {
+        .for_each(|(entity, _, _, _, next_move, _, _, _, _, _)| {
             directions.insert(entity, next_move.0);
         });
 
@@ -103,6 +119,7 @@ fn player_movement(
             mut next_move,
             mut orientation,
             mut visibility,
+            grid_position,
             trailing,
             maybe_stuck,
         ) = player_piece.get_mut(entity)?;
@@ -117,13 +134,16 @@ fn player_movement(
         };
         if update_snake_piece(
             &time,
+            &mut commands,
             (
+                entity,
                 &mut timer,
                 &mut sprite,
                 &mut transform,
                 &mut next_move,
                 &mut orientation,
                 &mut visibility,
+                grid_position,
                 maybe_stuck,
             ),
             new_move_direction,

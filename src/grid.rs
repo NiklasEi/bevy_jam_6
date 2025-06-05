@@ -5,6 +5,7 @@ use rand::Rng;
 use crate::{
     actions::{MoveDirection, NextMove, Orientation},
     loading::TextureAssets,
+    player::GridPosition,
     GameState,
 };
 
@@ -24,12 +25,16 @@ impl Plugin for GridPlugin {
 pub fn random_placement(
     length: u8,
     rng: &mut GlobalEntropy<ChaCha8Rng>,
-) -> Vec<(Orientation, MoveDirection, Transform)> {
+) -> Vec<(Orientation, MoveDirection, Transform, GridPosition)> {
     let mut placements = vec![];
 
     let curves = [rng.gen_range(0..length - 1), rng.gen_range(0..length - 1)];
 
     let mut next_orientation = Orientation::Up;
+    let mut next_grid_position = GridPosition {
+        x: GRID_WIDTH / 2,
+        y: GRID_HEIGHT / 2,
+    };
     let mut next_position = Vec3::new(0., 0., 1.);
     let mut next_rotation = 0.;
     for i in 0..length {
@@ -45,10 +50,16 @@ pub fn random_placement(
 
         let mut transform = Transform::from_translation(next_position);
         transform.rotate_z(next_rotation);
-        placements.push((next_orientation, direction, transform));
+        placements.push((
+            next_orientation,
+            direction,
+            transform,
+            next_grid_position.clone(),
+        ));
 
         next_rotation += NextMove(direction).z_angle();
         next_orientation.next(&NextMove(direction));
+        next_grid_position = next_orientation.next_position(&next_grid_position);
         next_position += next_orientation.direction() * TILE_SIZE;
         wrap_translate(&mut next_position);
     }

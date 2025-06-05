@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::actions::{MoveDirection, NextMove, Orientation, Player};
 use crate::following::Trailing;
-use crate::grid::random_placement;
+use crate::grid::{random_placement, GRID_HEIGHT, GRID_WIDTH};
 use crate::loading::TextureAssets;
 use crate::movement::MovementTimer;
 use crate::{AppSystems, GameState};
@@ -23,10 +23,13 @@ impl Plugin for PlayerPlugin {
                 Update,
                 (
                     update_player_direction.in_set(AppSystems::Input),
+                    check_collisions.in_set(AppSystems::CheckCollision),
                     grow_snake.in_set(AppSystems::Move),
                 )
                     .run_if(in_state(GameState::Playing)),
-            );
+            )
+            .add_observer(on_grid_position_insert)
+            .add_observer(on_grid_position_remove);
     }
 }
 
@@ -47,6 +50,7 @@ fn spawn_player(
     textures: Res<TextureAssets>,
     mut rng: GlobalEntropy<ChaCha8Rng>,
 ) {
+    commands.insert_resource(SnakePositions::default());
     let mut placements = random_placement(4, &mut rng);
     info!("Starting positions: {placements:?}");
     let mut placement = placements.pop().unwrap();
@@ -60,6 +64,7 @@ fn spawn_player(
                 },
             ),
             placement.2,
+            placement.3,
             NextMove(placement.1),
             Actions::<Player>::default(),
             MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
@@ -78,6 +83,7 @@ fn spawn_player(
                 },
             ),
             placement.2,
+            placement.3,
             NextMove(placement.1),
             MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
             placement.0,
@@ -96,6 +102,7 @@ fn spawn_player(
                 },
             ),
             placement.2,
+            placement.3,
             NextMove(placement.1),
             MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
             placement.0,
@@ -113,6 +120,7 @@ fn spawn_player(
             },
         ),
         placement.2,
+        placement.3,
         NextMove(placement.1),
         MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
         placement.0,
@@ -157,6 +165,7 @@ fn grow_snake(
             &Sprite,
             &MovementTimer,
             &Trailing,
+            &GridPosition,
         ),
         With<SnakeTailInner>,
     >,
@@ -166,8 +175,16 @@ fn grow_snake(
 ) -> Result {
     timer.0.tick(time.delta());
     if timer.0.just_finished() {
-        let (inner_tail, transform, orientation, next_move, sprite, movement_timer, trailing) =
-            inner_tail.single()?;
+        let (
+            inner_tail,
+            transform,
+            orientation,
+            next_move,
+            sprite,
+            movement_timer,
+            trailing,
+            position,
+        ) = inner_tail.single()?;
         let new_body_part = commands
             .spawn((
                 Sprite::from_atlas_image(
@@ -188,6 +205,7 @@ fn grow_snake(
                     timer
                 },
                 *transform,
+                position.clone(),
                 Trailing(trailing.0),
                 Visibility::Hidden,
             ))
@@ -199,4 +217,55 @@ fn grow_snake(
     }
 
     Ok(())
+}
+
+#[derive(Resource, Default)]
+struct SnakePositions([[Vec<Entity>; GRID_HEIGHT]; GRID_WIDTH]);
+
+#[derive(Component, Clone, Debug)]
+#[component(immutable)]
+pub struct GridPosition {
+    pub x: usize,
+    pub y: usize,
+}
+
+fn on_grid_position_insert(
+    trigger: Trigger<OnInsert, GridPosition>,
+    query: Query<(&GridPosition, &Visibility)>,
+    mut positions: ResMut<SnakePositions>,
+) -> Result {
+    let (grid_position, visibility) = query.get(trigger.target())?;
+    if !matches!(visibility, Visibility::Hidden) {
+        positions.0[grid_position.x][grid_position.y].push(trigger.target());
+    }
+
+    Ok(())
+}
+
+fn on_grid_position_remove(
+    trigger: Trigger<OnRemove, GridPosition>,
+    query: Query<(&GridPosition, &Visibility)>,
+    mut positions: ResMut<SnakePositions>,
+) -> Result {
+    let (grid_position, visibility) = query.get(trigger.target())?;
+    if !matches!(visibility, Visibility::Hidden) {
+        if let Some(index) = positions.0[grid_position.x][grid_position.y]
+            .iter()
+            .position(|value| *value == trigger.target())
+        {
+            positions.0[grid_position.x][grid_position.y].swap_remove(index);
+        }
+    }
+
+    Ok(())
+}
+
+fn check_collisions(positions: Res<SnakePositions>) {
+    for (x, column) in positions.0.iter().enumerate() {
+        for (y, entities) in column.iter().enumerate() {
+            if entities.len() > 1 {
+                info!("Collision at {x}/{y}")
+            }
+        }
+    }
 }

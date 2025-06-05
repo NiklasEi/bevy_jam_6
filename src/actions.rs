@@ -3,7 +3,10 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy_enhanced_input::prelude::*;
 
-use crate::player::SnakeHead;
+use crate::{
+    grid::{GRID_HEIGHT, GRID_WIDTH},
+    player::{GridPosition, SnakeHead},
+};
 
 pub struct ActionsPlugin;
 
@@ -88,6 +91,30 @@ impl Orientation {
             Orientation::Down => -Vec3::Y,
             Orientation::Left => -Vec3::X,
         }
+    }
+
+    pub fn next_position(&self, position: &GridPosition) -> GridPosition {
+        let mut next = position.clone();
+        match self {
+            Orientation::Up => next.y = (next.y + 1) % GRID_HEIGHT,
+            Orientation::Right => next.x = (next.x + 1) % GRID_WIDTH,
+            Orientation::Down => {
+                if next.y == 0 {
+                    next.y = GRID_HEIGHT - 1;
+                } else {
+                    next.y -= 1;
+                }
+            }
+            Orientation::Left => {
+                if next.x == 0 {
+                    next.x = GRID_WIDTH - 1;
+                } else {
+                    next.x -= 1;
+                }
+            }
+        }
+
+        next
     }
 }
 
