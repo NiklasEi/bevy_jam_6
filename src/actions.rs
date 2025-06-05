@@ -25,15 +25,18 @@ fn player_binding(trigger: Trigger<Binding<Player>>, mut players: Query<&mut Act
     actions
         .bind::<MoveStraight>()
         .to((KeyCode::KeyW, KeyCode::ArrowUp, GamepadButton::DPadUp))
-        .with_modifiers(DeadZone::default());
+        .with_modifiers(DeadZone::default())
+        .with_conditions(Pulse::new(0.2));
     actions
         .bind::<MoveRight>()
         .to((KeyCode::KeyD, KeyCode::ArrowRight, GamepadButton::DPadRight))
-        .with_modifiers(DeadZone::default());
+        .with_modifiers(DeadZone::default())
+        .with_conditions(Pulse::new(0.2));
     actions
         .bind::<MoveLeft>()
         .to((KeyCode::KeyA, KeyCode::ArrowLeft, GamepadButton::DPadLeft))
-        .with_modifiers(DeadZone::default());
+        .with_modifiers(DeadZone::default())
+        .with_conditions(Pulse::new(0.2));
 }
 
 #[derive(InputContext)]
@@ -135,6 +138,7 @@ fn next_move_right(
     players: Query<&mut NextMove, With<SnakeHead>>,
 ) {
     if trigger.value {
+        info!("turning right");
         for mut next_move in players {
             next_move.0 = MoveDirection::Right;
         }

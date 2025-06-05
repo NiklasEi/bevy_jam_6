@@ -5,7 +5,7 @@ use crate::{
     following::Trailing,
     grid::{wrap_translate, TILE_SIZE},
     player::{SnakeTail, StuckOnce},
-    GameState,
+    AppSystems, GameState,
 };
 
 const ANIMATION_FRAMES: usize = 9;
@@ -14,7 +14,12 @@ pub struct MovementPlugin;
 
 impl Plugin for MovementPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, player_movement.run_if(in_state(GameState::Playing)));
+        app.add_systems(
+            Update,
+            player_movement
+                .in_set(AppSystems::Move)
+                .run_if(in_state(GameState::Playing)),
+        );
     }
 }
 
@@ -56,13 +61,13 @@ fn player_movement(
             if let Some(atlas) = sprite.texture_atlas.as_mut() {
                 let mut row = atlas.index / ANIMATION_FRAMES;
                 if 0 == (atlas.index + 1) % ANIMATION_FRAMES {
+                    info!("next tile");
                     if maybe_stuck.is_some() {
                         atlas.index = row * ANIMATION_FRAMES + (atlas.index + 1) % ANIMATION_FRAMES;
                         return Ok(true);
                     }
                     *visibility = Visibility::Inherited;
                     orientation.next(next_move);
-                    info!("moving towards {:?}", orientation.direction());
                     transform.translation += orientation.direction() * TILE_SIZE;
                     wrap_translate(&mut transform.translation);
                     transform.rotate_z(next_move.z_angle());

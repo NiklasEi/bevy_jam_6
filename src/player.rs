@@ -5,7 +5,7 @@ use crate::following::Trailing;
 use crate::grid::random_placement;
 use crate::loading::TextureAssets;
 use crate::movement::MovementTimer;
-use crate::GameState;
+use crate::{AppSystems, GameState};
 use bevy::prelude::*;
 use bevy_enhanced_input::prelude::Actions;
 use bevy_rand::global::GlobalEntropy;
@@ -21,7 +21,11 @@ impl Plugin for PlayerPlugin {
             .add_systems(OnEnter(GameState::Playing), spawn_player)
             .add_systems(
                 Update,
-                (update_player_direction, grow_snake).run_if(in_state(GameState::Playing)),
+                (
+                    update_player_direction.in_set(AppSystems::Input),
+                    grow_snake.in_set(AppSystems::Move),
+                )
+                    .run_if(in_state(GameState::Playing)),
             );
     }
 }

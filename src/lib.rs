@@ -20,6 +20,7 @@ use bevy::app::App;
 #[cfg(debug_assertions)]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
+use bevy_enhanced_input::EnhancedInputSystem;
 use grid::GridPlugin;
 
 // This example game uses States to separate logic
@@ -57,5 +58,22 @@ impl Plugin for GamePlugin {
                 LogDiagnosticsPlugin::default(),
             ));
         }
+        app.configure_sets(
+            Update,
+            (
+                EnhancedInputSystem,
+                AppSystems::Input,
+                AppSystems::Move,
+                AppSystems::CheckCollision,
+            )
+                .chain(),
+        );
     }
+}
+
+#[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]
+enum AppSystems {
+    Input,
+    Move,
+    CheckCollision,
 }
