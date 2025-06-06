@@ -52,4 +52,8 @@ pub struct TextureAssets {
     pub body_layout: Handle<TextureAtlasLayout>,
     #[asset(path = "textures/tile.png")]
     pub tile: Handle<Image>,
+    #[asset(path = "textures/active.png")]
+    pub active: Handle<Image>,
+    #[asset(path = "textures/collision.png")]
+    pub collision: Handle<Image>,
 }

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::actions::{MoveDirection, NextMove, Orientation, Player};
 use crate::following::Trailing;
-use crate::grid::{random_placement, GRID_HEIGHT, GRID_WIDTH};
+use crate::grid::{position_to_transform, random_placement, GRID_HEIGHT, GRID_WIDTH};
 use crate::loading::TextureAssets;
 use crate::movement::MovementTimer;
 use crate::{AppSystems, GameState};
@@ -23,13 +23,15 @@ impl Plugin for PlayerPlugin {
                 Update,
                 (
                     update_player_direction.in_set(AppSystems::Input),
-                    check_collisions.in_set(AppSystems::CheckCollision),
+                    (check_collisions, mark_taken)
+                        .chain()
+                        .in_set(AppSystems::CheckCollision),
                     grow_snake.in_set(AppSystems::Move),
                 )
                     .run_if(in_state(GameState::Playing)),
             )
             .add_observer(on_grid_position_insert)
-            .add_observer(on_grid_position_remove);
+            .add_observer(on_grid_position_replaced);
     }
 }
 
@@ -208,6 +210,7 @@ fn grow_snake(
                 position.clone(),
                 Trailing(trailing.0),
                 Visibility::Hidden,
+                NewBody,
             ))
             .id();
         commands
@@ -219,7 +222,7 @@ fn grow_snake(
     Ok(())
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Debug)]
 struct SnakePositions([[Vec<Entity>; GRID_HEIGHT]; GRID_WIDTH]);
 
 #[derive(Component, Clone, Debug)]
@@ -229,26 +232,27 @@ pub struct GridPosition {
     pub y: usize,
 }
 
+#[derive(Component)]
+struct NewBody;
+
 fn on_grid_position_insert(
     trigger: Trigger<OnInsert, GridPosition>,
-    query: Query<(&GridPosition, &Visibility)>,
+    query: Query<&GridPosition, Without<NewBody>>,
     mut positions: ResMut<SnakePositions>,
-) -> Result {
-    let (grid_position, visibility) = query.get(trigger.target())?;
-    if !matches!(visibility, Visibility::Hidden) {
+) {
+    if let Ok(grid_position) = query.get(trigger.target()) {
         positions.0[grid_position.x][grid_position.y].push(trigger.target());
     }
-
-    Ok(())
 }
 
-fn on_grid_position_remove(
-    trigger: Trigger<OnRemove, GridPosition>,
-    query: Query<(&GridPosition, &Visibility)>,
+fn on_grid_position_replaced(
+    trigger: Trigger<OnReplace, GridPosition>,
+    query: Query<&GridPosition, Without<NewBody>>,
+    new_parts: Query<Entity, With<NewBody>>,
     mut positions: ResMut<SnakePositions>,
-) -> Result {
-    let (grid_position, visibility) = query.get(trigger.target())?;
-    if !matches!(visibility, Visibility::Hidden) {
+    mut commands: Commands,
+) {
+    if let Ok(grid_position) = query.get(trigger.target()) {
         if let Some(index) = positions.0[grid_position.x][grid_position.y]
             .iter()
             .position(|value| *value == trigger.target())
@@ -257,7 +261,9 @@ fn on_grid_position_remove(
         }
     }
 
-    Ok(())
+    for new_part in new_parts {
+        commands.entity(new_part).remove::<NewBody>();
+    }
 }
 
 fn check_collisions(positions: Res<SnakePositions>) {
@@ -265,6 +271,47 @@ fn check_collisions(positions: Res<SnakePositions>) {
         for (y, entities) in column.iter().enumerate() {
             if entities.len() > 1 {
                 info!("Collision at {x}/{y}")
+            }
+        }
+    }
+}
+
+#[derive(Component)]
+struct ActiveMarker;
+
+fn mark_taken(
+    active: Query<Entity, With<ActiveMarker>>,
+    mut commands: Commands,
+    asset: Res<TextureAssets>,
+    positions: Res<SnakePositions>,
+) {
+    active
+        .iter()
+        .for_each(|entity| commands.entity(entity).despawn());
+    commands.spawn((
+        ActiveMarker,
+        Transform::from_translation(position_to_transform(&GridPosition { x: 0, y: 0 }).extend(0.)),
+        Sprite::from_image(asset.active.clone()),
+    ));
+
+    for x in 0..GRID_WIDTH {
+        for y in 0..GRID_HEIGHT {
+            if positions.0[x][y].len() == 1 {
+                commands.spawn((
+                    ActiveMarker,
+                    Transform::from_translation(
+                        position_to_transform(&GridPosition { x, y }).extend(0.),
+                    ),
+                    Sprite::from_image(asset.active.clone()),
+                ));
+            } else if positions.0[x][y].len() > 1 {
+                commands.spawn((
+                    ActiveMarker,
+                    Transform::from_translation(
+                        position_to_transform(&GridPosition { x, y }).extend(0.),
+                    ),
+                    Sprite::from_image(asset.collision.clone()),
+                ));
             }
         }
     }

@@ -80,6 +80,13 @@ pub fn wrap_translate(translate: &mut Vec3) {
     }
 }
 
+pub fn position_to_transform(position: &GridPosition) -> Vec2 {
+    Vec2::new(
+        (-(GRID_WIDTH as f32) / 2. + position.x as f32) * TILE_SIZE,
+        -(GRID_HEIGHT as f32 / 2. - position.y as f32) * TILE_SIZE,
+    )
+}
+
 fn spawn_grid(mut commands: Commands, textures: Res<TextureAssets>) {
     for column in 0..GRID_WIDTH {
         for row in 1..=GRID_HEIGHT {
