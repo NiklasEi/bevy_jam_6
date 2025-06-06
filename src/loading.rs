@@ -1,4 +1,4 @@
-use crate::GameState;
+use crate::{gems::Gem, GameState};
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
 
@@ -56,4 +56,23 @@ pub struct TextureAssets {
     pub active: Handle<Image>,
     #[asset(path = "textures/collision.png")]
     pub collision: Handle<Image>,
+    #[asset(path = "textures/gem1.png")]
+    pub gem1: Handle<Image>,
+    #[asset(path = "textures/gem2.png")]
+    pub gem2: Handle<Image>,
+    #[asset(path = "textures/gem3.png")]
+    pub gem3: Handle<Image>,
+    #[asset(path = "textures/gem4.png")]
+    pub gem4: Handle<Image>,
+}
+
+impl TextureAssets {
+    pub fn gem(&self, gem: &Gem) -> Handle<Image> {
+        match gem {
+            &Gem::One => self.gem1.clone(),
+            &Gem::Two => self.gem2.clone(),
+            &Gem::Three => self.gem3.clone(),
+            &Gem::Four => self.gem4.clone(),
+        }
+    }
 }

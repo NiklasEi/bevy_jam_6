@@ -3,6 +3,7 @@
 mod actions;
 mod audio;
 mod following;
+mod gems;
 mod grid;
 mod loading;
 mod menu;
@@ -21,6 +22,7 @@ use bevy::app::App;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 use bevy_enhanced_input::EnhancedInputSystem;
+use gems::GemsPlugin;
 use grid::GridPlugin;
 
 // This example game uses States to separate logic
@@ -49,6 +51,7 @@ impl Plugin for GamePlugin {
             MovementPlugin,
             GridPlugin,
             InternalAudioPlugin,
+            GemsPlugin,
         ));
 
         #[cfg(debug_assertions)]
