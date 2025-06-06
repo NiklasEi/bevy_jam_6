@@ -19,7 +19,7 @@ impl Plugin for GemsPlugin {
 
 fn fill(mut commands: Commands, assets: Res<TextureAssets>, mut rng: GlobalEntropy<ChaCha8Rng>) {
     for x in 0..GRID_WIDTH {
-        for y in 1..=GRID_HEIGHT {
+        for y in 0..GRID_HEIGHT {
             let gem = Gem::random(&mut rng);
             commands.spawn((
                 Transform::from_translation(
