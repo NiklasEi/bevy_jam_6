@@ -288,11 +288,6 @@ fn mark_taken(
     active
         .iter()
         .for_each(|entity| commands.entity(entity).despawn());
-    commands.spawn((
-        ActiveMarker,
-        Transform::from_translation(position_to_transform(&GridPosition { x: 0, y: 0 }).extend(0.)),
-        Sprite::from_image(asset.active.clone()),
-    ));
 
     for x in 0..GRID_WIDTH {
         for y in 0..GRID_HEIGHT {
