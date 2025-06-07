@@ -1,6 +1,6 @@
 use crate::{
-    gems::GemType,
-    grid::{position_to_transform, GRID_HEIGHT, GRID_WIDTH},
+    gems::{Falling, GemType},
+    grid::{position_to_transform, GRID_HEIGHT, GRID_WIDTH, TILE_SIZE},
     loading::TextureAssets,
     player::{ActivePositions, GridPosition, SnakeHead},
     AppSystems, GamePhase, GameState,
@@ -28,10 +28,11 @@ struct Exploding;
 
 fn explode(
     head: Query<&GridPosition, With<SnakeHead>>,
-    board: Res<Board>,
+    mut board: ResMut<Board>,
     mut commands: Commands,
     exploding: Query<Entity, With<Exploding>>,
     asset: Res<TextureAssets>,
+    mut rng: GlobalEntropy<ChaCha8Rng>,
 ) -> Result {
     exploding
         .iter()
@@ -52,17 +53,61 @@ fn explode(
     }
     info!("Did {iteration} iterations!");
 
-    for x in 0..GRID_WIDTH {
+    for column in 0..GRID_WIDTH {
+        let mut spawn_count = 0;
         for y in 0..GRID_HEIGHT {
-            if exploding[x][y] {
+            let Some(entity) = board.gems[column][y].entity else {
+                error!("Missing gem entity");
+                continue;
+            };
+            if exploding[column][y] {
+                spawn_count += 1;
+                commands.entity(entity).despawn();
                 commands.spawn((
                     Exploding,
                     Transform::from_translation(
-                        position_to_transform(&GridPosition { x, y }).extend(0.),
+                        position_to_transform(&GridPosition { x: column, y }).extend(0.),
                     ),
                     Sprite::from_image(asset.collision.clone()),
                 ));
+            } else if spawn_count > 0 {
+                commands.entity(entity).insert((
+                    Falling,
+                    GridPosition {
+                        x: column,
+                        y: y - spawn_count,
+                    },
+                ));
+                board.gems[column][y - spawn_count] = board.gems[column][y].clone();
             }
+        }
+        for spawn in 1..=spawn_count {
+            let gem_type = GemType::random(&mut rng);
+            let position = GridPosition {
+                x: column,
+                y: GRID_HEIGHT - spawn,
+            };
+            let id = commands
+                .spawn((
+                    Transform::from_translation(
+                        position_to_transform(&position).extend(0.)
+                            + Vec3::new(
+                                0.,
+                                TILE_SIZE * (GRID_HEIGHT as f32) / 2.
+                                    + spawn as f32 * TILE_SIZE / 2.,
+                                0.,
+                            ),
+                    ),
+                    Sprite::from_image(asset.gem(&gem_type)),
+                    gem_type.clone(),
+                    position,
+                    Falling,
+                ))
+                .id();
+            board.gems[column][GRID_HEIGHT - spawn] = Gem {
+                gem_type,
+                entity: Some(id),
+            };
         }
     }
 
