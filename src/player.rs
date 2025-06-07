@@ -1,11 +1,12 @@
 use std::time::Duration;
 
 use crate::actions::{MoveDirection, NextMove, Orientation, Player};
+use crate::board::fill_board;
 use crate::following::Trailing;
 use crate::grid::{position_to_transform, random_placement, GRID_HEIGHT, GRID_WIDTH};
 use crate::loading::TextureAssets;
 use crate::movement::MovementTimer;
-use crate::{AppSystems, GameState};
+use crate::{AppSystems, GamePhase, GameState};
 use bevy::prelude::*;
 use bevy_enhanced_input::prelude::Actions;
 use bevy_rand::global::GlobalEntropy;
@@ -18,7 +19,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GrowthTimer(Timer::from_seconds(5., TimerMode::Repeating)))
-            .add_systems(OnEnter(GameState::Playing), spawn_player)
+            .add_systems(OnEnter(GameState::Playing), spawn_player.before(fill_board))
             .add_systems(
                 Update,
                 (
@@ -28,7 +29,7 @@ impl Plugin for PlayerPlugin {
                         .in_set(AppSystems::CheckCollision),
                     grow_snake.in_set(AppSystems::Move),
                 )
-                    .run_if(in_state(GameState::Playing)),
+                    .run_if(in_state(GamePhase::Playing)),
             )
             .add_observer(on_grid_position_insert)
             .add_observer(on_grid_position_replaced);
@@ -72,6 +73,7 @@ fn spawn_player(
             MovementTimer(Timer::new(Duration::from_millis(100), TimerMode::Repeating)),
             SnakeHead,
             placement.0,
+            SnakePart,
         ))
         .id();
     placement = placements.pop().unwrap();
@@ -91,6 +93,7 @@ fn spawn_player(
             placement.0,
             SnakeHeadInner,
             Trailing(head),
+            SnakePart,
         ))
         .id();
     placement = placements.pop().unwrap();
@@ -110,6 +113,7 @@ fn spawn_player(
             placement.0,
             SnakeTailInner,
             Trailing(head2),
+            SnakePart,
         ))
         .id();
     placement = placements.pop().unwrap();
@@ -128,6 +132,7 @@ fn spawn_player(
         placement.0,
         Trailing(tail2),
         SnakeTail,
+        SnakePart,
     ));
 }
 
@@ -211,6 +216,7 @@ fn grow_snake(
                 Trailing(trailing.0),
                 Visibility::Hidden,
                 NewBody,
+                SnakePart,
             ))
             .id();
         commands
@@ -235,9 +241,12 @@ pub struct GridPosition {
 #[derive(Component)]
 struct NewBody;
 
+#[derive(Component)]
+pub struct SnakePart;
+
 fn on_grid_position_insert(
     trigger: Trigger<OnInsert, GridPosition>,
-    query: Query<&GridPosition, Without<NewBody>>,
+    query: Query<&GridPosition, (Without<NewBody>, With<SnakePart>)>,
     mut positions: ResMut<SnakePositions>,
 ) {
     if let Ok(grid_position) = query.get(trigger.target()) {
@@ -247,7 +256,7 @@ fn on_grid_position_insert(
 
 fn on_grid_position_replaced(
     trigger: Trigger<OnReplace, GridPosition>,
-    query: Query<&GridPosition, Without<NewBody>>,
+    query: Query<&GridPosition, (Without<NewBody>, With<SnakePart>)>,
     new_parts: Query<Entity, With<NewBody>>,
     mut positions: ResMut<SnakePositions>,
     mut commands: Commands,

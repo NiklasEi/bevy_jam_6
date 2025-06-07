@@ -4,8 +4,8 @@ use crate::{
     actions::{MoveDirection, NextMove, Orientation},
     following::Trailing,
     grid::{wrap_translate, TILE_SIZE},
-    player::{GridPosition, SnakeTail, StuckOnce},
-    AppSystems, GameState,
+    player::{GridPosition, SnakePart, SnakeTail, StuckOnce},
+    AppSystems, GamePhase,
 };
 
 const ANIMATION_FRAMES: usize = 9;
@@ -18,7 +18,7 @@ impl Plugin for MovementPlugin {
             Update,
             player_movement
                 .in_set(AppSystems::Move)
-                .run_if(in_state(GameState::Playing)),
+                .run_if(in_state(GamePhase::Playing)),
         );
     }
 }
@@ -30,18 +30,21 @@ fn player_movement(
     mut commands: Commands,
     time: Res<Time>,
     tail: Query<Entity, With<SnakeTail>>,
-    mut player_piece: Query<(
-        Entity,
-        &mut MovementTimer,
-        &mut Sprite,
-        &mut Transform,
-        &mut NextMove,
-        &mut Orientation,
-        &mut Visibility,
-        &GridPosition,
-        Option<&Trailing>,
-        Option<&StuckOnce>,
-    )>,
+    mut player_piece: Query<
+        (
+            Entity,
+            &mut MovementTimer,
+            &mut Sprite,
+            &mut Transform,
+            &mut NextMove,
+            &mut Orientation,
+            &mut Visibility,
+            &GridPosition,
+            Option<&Trailing>,
+            Option<&StuckOnce>,
+        ),
+        With<SnakePart>,
+    >,
 ) -> Result {
     fn update_snake_piece(
         time: &Time,

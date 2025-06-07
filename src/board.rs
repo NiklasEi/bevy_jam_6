@@ -37,12 +37,14 @@ impl Board {
 #[derive(Clone)]
 pub struct Gem {
     pub gem_type: GemType,
+    pub entity: Option<Entity>,
 }
 
 impl Default for Gem {
     fn default() -> Self {
         Gem {
             gem_type: GemType::One,
+            entity: None,
         }
     }
 }

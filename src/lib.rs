@@ -35,27 +35,36 @@ enum GameState {
     // During the loading State the LoadingPlugin will load our assets
     #[default]
     Loading,
-    // During this State the actual game logic is executed
     Playing,
-    // Here the menu is drawn and waiting for player interaction
     Menu,
+}
+
+#[derive(SubStates, Clone, PartialEq, Eq, Hash, Debug, Default)]
+#[source(GameState = GameState::Playing)]
+enum GamePhase {
+    #[default]
+    Playing,
+    Waiting,
+    Pause,
 }
 
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.init_state::<GameState>().add_plugins((
-            LoadingPlugin,
-            MenuPlugin,
-            ActionsPlugin,
-            PlayerPlugin,
-            MovementPlugin,
-            GridPlugin,
-            InternalAudioPlugin,
-            GemsPlugin,
-            BoardPlugin,
-        ));
+        app.init_state::<GameState>()
+            .add_sub_state::<GamePhase>()
+            .add_plugins((
+                LoadingPlugin,
+                MenuPlugin,
+                ActionsPlugin,
+                PlayerPlugin,
+                MovementPlugin,
+                GridPlugin,
+                InternalAudioPlugin,
+                GemsPlugin,
+                BoardPlugin,
+            ));
 
         #[cfg(debug_assertions)]
         {

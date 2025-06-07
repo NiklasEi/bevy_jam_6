@@ -1,5 +1,5 @@
 use crate::loading::TextureAssets;
-use crate::GameState;
+use crate::{GamePhase, GameState};
 use bevy::prelude::*;
 
 pub struct MenuPlugin;
@@ -10,7 +10,21 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Menu), setup_menu)
             .add_systems(Update, click_play_button.run_if(in_state(GameState::Menu)))
-            .add_systems(OnExit(GameState::Menu), cleanup_menu);
+            .add_systems(OnExit(GameState::Menu), cleanup_menu)
+            .add_systems(Update, start_pause.run_if(in_state(GamePhase::Playing)))
+            .add_systems(Update, stop_pause.run_if(in_state(GamePhase::Pause)));
+    }
+}
+
+fn start_pause(input: Res<ButtonInput<KeyCode>>, mut next_state: ResMut<NextState<GamePhase>>) {
+    if input.just_pressed(KeyCode::Space) {
+        next_state.set(GamePhase::Pause);
+    }
+}
+
+fn stop_pause(input: Res<ButtonInput<KeyCode>>, mut next_state: ResMut<NextState<GamePhase>>) {
+    if input.just_pressed(KeyCode::Space) {
+        next_state.set(GamePhase::Playing);
     }
 }
 
