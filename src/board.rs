@@ -95,7 +95,7 @@ fn explode(
                             + Vec3::new(
                                 0.,
                                 TILE_SIZE * (GRID_HEIGHT as f32) / 2.
-                                    + spawn as f32 * TILE_SIZE / 2.,
+                                    + (spawn_count - spawn) as f32 * TILE_SIZE / 2.,
                                 0.,
                             ),
                     ),
