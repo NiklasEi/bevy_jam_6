@@ -18,13 +18,17 @@ pub struct PlayerPlugin;
 /// Player logic is only active during the State `GameState::Playing`
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(GrowthTimer(Timer::from_seconds(5., TimerMode::Repeating)))
+        app.init_resource::<ActivePositions>()
+            .init_resource::<SnakePositions>()
+            .insert_resource(GrowthTimer(Timer::from_seconds(5., TimerMode::Repeating)))
             .add_systems(OnEnter(GameState::Playing), spawn_player.before(fill_board))
             .add_systems(
                 Update,
                 (
                     update_player_direction.in_set(AppSystems::Input),
-                    (check_collisions, mark_taken)
+                    (check_collisions, (mark_taken, update_active))
+                        .run_if(in_state(GamePhase::Playing))
+                        .run_if(resource_changed::<SnakePositions>)
                         .chain()
                         .in_set(AppSystems::CheckCollision),
                     grow_snake.in_set(AppSystems::Spawn),
@@ -276,15 +280,25 @@ fn on_grid_position_replaced(
 }
 
 fn check_collisions(positions: Res<SnakePositions>) {
-    if !positions.is_changed() {
-        return;
-    }
     for (x, column) in positions.0.iter().enumerate() {
         for (y, entities) in column.iter().enumerate() {
             if entities.len() > 1 {
                 info!("Collision at {x}/{y}")
             }
         }
+    }
+}
+
+#[derive(Default, Resource)]
+pub struct ActivePositions(pub Vec<GridPosition>);
+
+fn update_active(
+    mut active: ResMut<ActivePositions>,
+    snake: Query<&GridPosition, With<SnakePart>>,
+) {
+    active.0.clear();
+    for pos in snake {
+        active.0.push(pos.clone());
     }
 }
 
@@ -297,9 +311,6 @@ fn mark_taken(
     asset: Res<TextureAssets>,
     positions: Res<SnakePositions>,
 ) {
-    if !positions.is_changed() {
-        return;
-    }
     active
         .iter()
         .for_each(|entity| commands.entity(entity).despawn());
