@@ -27,7 +27,7 @@ impl Plugin for PlayerPlugin {
                     (check_collisions, mark_taken)
                         .chain()
                         .in_set(AppSystems::CheckCollision),
-                    grow_snake.in_set(AppSystems::Move),
+                    grow_snake.in_set(AppSystems::Spawn),
                 )
                     .run_if(in_state(GamePhase::Playing)),
             )
@@ -276,6 +276,9 @@ fn on_grid_position_replaced(
 }
 
 fn check_collisions(positions: Res<SnakePositions>) {
+    if !positions.is_changed() {
+        return;
+    }
     for (x, column) in positions.0.iter().enumerate() {
         for (y, entities) in column.iter().enumerate() {
             if entities.len() > 1 {
@@ -294,6 +297,9 @@ fn mark_taken(
     asset: Res<TextureAssets>,
     positions: Res<SnakePositions>,
 ) {
+    if !positions.is_changed() {
+        return;
+    }
     active
         .iter()
         .for_each(|entity| commands.entity(entity).despawn());

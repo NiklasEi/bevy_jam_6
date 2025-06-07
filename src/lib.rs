@@ -79,7 +79,9 @@ impl Plugin for GamePlugin {
                 EnhancedInputSystem,
                 AppSystems::Input,
                 AppSystems::Move,
+                AppSystems::Spawn,
                 AppSystems::CheckCollision,
+                AppSystems::Match,
             )
                 .chain(),
         );
@@ -90,5 +92,7 @@ impl Plugin for GamePlugin {
 enum AppSystems {
     Input,
     Move,
+    Spawn,
     CheckCollision,
+    Match,
 }
