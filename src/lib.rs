@@ -2,6 +2,7 @@
 
 mod actions;
 mod audio;
+mod board;
 mod following;
 mod gems;
 mod grid;
@@ -22,6 +23,7 @@ use bevy::app::App;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
 use bevy_enhanced_input::EnhancedInputSystem;
+use board::BoardPlugin;
 use gems::GemsPlugin;
 use grid::GridPlugin;
 
@@ -52,6 +54,7 @@ impl Plugin for GamePlugin {
             GridPlugin,
             InternalAudioPlugin,
             GemsPlugin,
+            BoardPlugin,
         ));
 
         #[cfg(debug_assertions)]

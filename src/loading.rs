@@ -1,4 +1,4 @@
-use crate::{gems::Gem, GameState};
+use crate::{gems::GemType, GameState};
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
 
@@ -67,12 +67,12 @@ pub struct TextureAssets {
 }
 
 impl TextureAssets {
-    pub fn gem(&self, gem: &Gem) -> Handle<Image> {
+    pub fn gem(&self, gem: &GemType) -> Handle<Image> {
         match gem {
-            &Gem::One => self.gem1.clone(),
-            &Gem::Two => self.gem2.clone(),
-            &Gem::Three => self.gem3.clone(),
-            &Gem::Four => self.gem4.clone(),
+            &GemType::One => self.gem1.clone(),
+            &GemType::Two => self.gem2.clone(),
+            &GemType::Three => self.gem3.clone(),
+            &GemType::Four => self.gem4.clone(),
         }
     }
 }
