@@ -53,6 +53,7 @@ fn explode(
     }
     info!("Did {iteration} iterations!");
 
+    #[allow(clippy::needless_range_loop)]
     for column in 0..GRID_WIDTH {
         let mut spawn_count = 0;
         for y in 0..GRID_HEIGHT {
@@ -136,7 +137,7 @@ impl Board {
     ) -> HashSet<GridPosition> {
         let mut positions = HashSet::default();
         for slot in active_slots {
-            self.check_slot(&slot, checked, exploding, &mut positions);
+            self.check_slot(slot, checked, exploding, &mut positions);
         }
 
         positions
@@ -265,7 +266,7 @@ fn mark_for_explosion(
 }
 
 fn in_bounds(x: usize, y: usize) -> bool {
-    return x < GRID_WIDTH && y < GRID_HEIGHT;
+    x < GRID_WIDTH && y < GRID_HEIGHT
 }
 
 #[derive(Clone)]

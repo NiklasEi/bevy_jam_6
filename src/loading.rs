@@ -68,11 +68,11 @@ pub struct TextureAssets {
 
 impl TextureAssets {
     pub fn gem(&self, gem: &GemType) -> Handle<Image> {
-        match gem {
-            &GemType::One => self.gem1.clone(),
-            &GemType::Two => self.gem2.clone(),
-            &GemType::Three => self.gem3.clone(),
-            &GemType::Four => self.gem4.clone(),
+        match *gem {
+            GemType::One => self.gem1.clone(),
+            GemType::Two => self.gem2.clone(),
+            GemType::Three => self.gem3.clone(),
+            GemType::Four => self.gem4.clone(),
         }
     }
 }
