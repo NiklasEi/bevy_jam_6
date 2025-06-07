@@ -37,12 +37,19 @@ fn mark_exploding(
         .iter()
         .for_each(|entity| commands.entity(entity).despawn());
 
-    for explode in board.find_matches(&active.0) {
-        commands.spawn((
-            Exploding,
-            Transform::from_translation(position_to_transform(&explode).extend(0.)),
-            Sprite::from_image(asset.collision.clone()),
-        ));
+    let exploding = board.find_matches(&active.0);
+    for x in 0..GRID_WIDTH {
+        for y in 0..GRID_HEIGHT {
+            if exploding[x][y] {
+                commands.spawn((
+                    Exploding,
+                    Transform::from_translation(
+                        position_to_transform(&GridPosition { x, y }).extend(0.),
+                    ),
+                    Sprite::from_image(asset.collision.clone()),
+                ));
+            }
+        }
     }
 }
 
@@ -60,135 +67,113 @@ impl Board {
         }
     }
 
-    fn find_matches(&self, active_slots: &Vec<GridPosition>) -> Vec<GridPosition> {
-        let mut matched = vec![];
+    fn find_matches(&self, active_slots: &Vec<GridPosition>) -> [[bool; GRID_HEIGHT]; GRID_WIDTH] {
+        let mut checked = [[false; GRID_HEIGHT]; GRID_WIDTH];
+        let mut exploding = [[false; GRID_HEIGHT]; GRID_WIDTH];
         for slot in active_slots {
+            if checked[slot.x][slot.y] {
+                continue;
+            }
+            checked[slot.x][slot.y] = true;
             let gem_type = self.gems[slot.x][slot.y].gem_type.clone();
+
+            let mut x_diff = 1;
+            let mut y_diff = 1;
             let mut matched_slot = false;
-            let mut matched_x_inner = false;
-            let mut matched_x_outer = false;
-            let mut matched_y_inner = false;
-            let mut matched_y_outer = false;
-            if slot.x > 0
-                && in_bounds(slot.x - 1, slot.y)
-                && self.gems[slot.x - 1][slot.y].gem_type == gem_type
+            let mut matched_x_slot = false;
+            let mut matched_x_plus = false;
+            let mut matched_y_slot = false;
+            let mut matched_y_plus = false;
+            while in_bounds(slot.x + x_diff, slot.y)
+                && self.gems[slot.x + x_diff][slot.y].gem_type == gem_type
             {
-                matched_x_inner = true;
-                if slot.x > 1
-                    && in_bounds(slot.x - 2, slot.y)
-                    && self.gems[slot.x - 2][slot.y].gem_type == gem_type
-                {
-                    matched.push(GridPosition {
-                        x: slot.x - 1,
-                        y: slot.y,
-                    });
-                    matched.push(GridPosition {
-                        x: slot.x - 2,
-                        y: slot.y,
-                    });
-                    matched_slot = true;
-                    matched_x_outer = true;
-                }
+                match x_diff {
+                    1 => matched_x_plus = true,
+                    2 => {
+                        matched_slot = true;
+                        matched_x_slot = true;
+                        exploding[slot.x + 1][slot.y] = true;
+                        exploding[slot.x + 2][slot.y] = true;
+                    }
+                    i => exploding[slot.x + i][slot.y] = true,
+                };
+                x_diff += 1;
             }
-            if in_bounds(slot.x + 1, slot.y) && self.gems[slot.x + 1][slot.y].gem_type == gem_type {
-                if in_bounds(slot.x + 2, slot.y)
-                    && self.gems[slot.x + 2][slot.y].gem_type == gem_type
-                {
-                    matched.push(GridPosition {
-                        x: slot.x + 1,
-                        y: slot.y,
-                    });
-                    matched.push(GridPosition {
-                        x: slot.x + 2,
-                        y: slot.y,
-                    });
-                    if matched_x_inner && !matched_x_outer {
-                        matched.push(GridPosition {
-                            x: slot.x - 1,
-                            y: slot.y,
-                        });
+            x_diff = 1;
+            while slot.x >= x_diff
+                && in_bounds(slot.x - x_diff, slot.y)
+                && self.gems[slot.x - x_diff][slot.y].gem_type == gem_type
+            {
+                match x_diff {
+                    1 => {
+                        if matched_x_plus {
+                            exploding[slot.x - 1][slot.y] = true;
+                            if !matched_x_slot {
+                                matched_slot = true;
+                                exploding[slot.x + 1][slot.y] = true;
+                            }
+                        }
                     }
-                    matched_slot = true;
-                } else if matched_x_inner {
-                    matched_slot = true;
-                    matched.push(GridPosition {
-                        x: slot.x + 1,
-                        y: slot.y,
-                    });
-                    if !matched_x_outer {
-                        matched.push(GridPosition {
-                            x: slot.x - 1,
-                            y: slot.y,
-                        });
+                    2 => {
+                        matched_slot = true;
+                        if !matched_x_plus {
+                            exploding[slot.x - 1][slot.y] = true;
+                        }
+                        exploding[slot.x - 2][slot.y] = true;
                     }
-                }
+                    i => exploding[slot.x - i][slot.y] = true,
+                };
+                x_diff += 1;
             }
 
-            if in_bounds(slot.x, slot.y + 1) && self.gems[slot.x][slot.y + 1].gem_type == gem_type {
-                matched_y_inner = true;
-                if in_bounds(slot.x, slot.y + 2)
-                    && self.gems[slot.x][slot.y + 2].gem_type == gem_type
-                {
-                    matched.push(GridPosition {
-                        x: slot.x,
-                        y: slot.y + 1,
-                    });
-                    matched.push(GridPosition {
-                        x: slot.x,
-                        y: slot.y + 2,
-                    });
-                    matched_slot = true;
-                    matched_y_outer = true;
-                }
-            }
-
-            if slot.y > 0
-                && in_bounds(slot.x, slot.y - 1)
-                && self.gems[slot.x][slot.y - 1].gem_type == gem_type
+            while in_bounds(slot.x, slot.y + y_diff)
+                && self.gems[slot.x][slot.y + y_diff].gem_type == gem_type
             {
-                if slot.y > 1
-                    && in_bounds(slot.x, slot.y - 2)
-                    && self.gems[slot.x][slot.y - 2].gem_type == gem_type
-                {
-                    matched.push(GridPosition {
-                        x: slot.x,
-                        y: slot.y - 1,
-                    });
-                    matched.push(GridPosition {
-                        x: slot.x,
-                        y: slot.y - 2,
-                    });
-                    if matched_y_inner && !matched_y_outer {
-                        matched.push(GridPosition {
-                            x: slot.x,
-                            y: slot.y + 1,
-                        });
+                match y_diff {
+                    1 => matched_y_plus = true,
+                    2 => {
+                        matched_slot = true;
+                        matched_y_slot = true;
+                        exploding[slot.x][slot.y + 1] = true;
+                        exploding[slot.x][slot.y + 2] = true;
                     }
-                    matched_slot = true;
-                } else if matched_y_inner {
-                    matched_slot = true;
-                    matched.push(GridPosition {
-                        x: slot.x,
-                        y: slot.y - 1,
-                    });
-                    if !matched_y_outer {
-                        matched.push(GridPosition {
-                            x: slot.x,
-                            y: slot.y + 1,
-                        });
+                    i => exploding[slot.x][slot.y + i] = true,
+                };
+                y_diff += 1;
+            }
+            y_diff = 1;
+            while slot.y >= y_diff
+                && in_bounds(slot.x, slot.y - y_diff)
+                && self.gems[slot.x][slot.y - y_diff].gem_type == gem_type
+            {
+                match y_diff {
+                    1 => {
+                        if matched_y_plus {
+                            exploding[slot.x][slot.y - 1] = true;
+                            if !matched_y_slot {
+                                matched_slot = true;
+                                exploding[slot.x][slot.y + 1] = true;
+                            }
+                        }
                     }
-                }
+                    2 => {
+                        matched_slot = true;
+                        if !matched_y_plus {
+                            exploding[slot.x][slot.y - 1] = true;
+                        }
+                        exploding[slot.x][slot.y - 2] = true;
+                    }
+                    i => exploding[slot.x][slot.y - i] = true,
+                };
+                y_diff += 1;
             }
 
             if matched_slot {
-                matched.push(GridPosition {
-                    x: slot.x,
-                    y: slot.y,
-                });
+                exploding[slot.x][slot.y] = true;
             }
         }
 
-        matched
+        exploding
     }
 }
 
