@@ -7,6 +7,7 @@ use crate::grid::{position_to_transform, random_placement, GRID_HEIGHT, GRID_WID
 use crate::loading::TextureAssets;
 use crate::movement::MovementTimer;
 use crate::{AppSystems, GamePhase, GameState};
+use bevy::platform::collections::HashSet;
 use bevy::prelude::*;
 use bevy_enhanced_input::prelude::Actions;
 use bevy_rand::global::GlobalEntropy;
@@ -235,11 +236,35 @@ fn grow_snake(
 #[derive(Resource, Default, Debug)]
 struct SnakePositions([[Vec<Entity>; GRID_HEIGHT]; GRID_WIDTH]);
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, Hash, Eq, PartialEq)]
 #[component(immutable)]
 pub struct GridPosition {
     pub x: usize,
     pub y: usize,
+}
+
+impl GridPosition {
+    pub fn surroundings(to_check: &Vec<Self>) -> HashSet<GridPosition> {
+        let mut positions = HashSet::default();
+        for slot in to_check {
+            for dx in -1..=1 {
+                for dy in -1..=1 {
+                    if dx == 0 && dy == 0 {
+                        continue;
+                    }
+                    let x = slot.x as i32 + dx;
+                    let y = slot.y as i32 + dy;
+                    if x >= 0 && x < GRID_WIDTH as i32 && y >= 0 && y < GRID_HEIGHT as i32 {
+                        positions.insert(GridPosition {
+                            x: x as usize,
+                            y: y as usize,
+                        });
+                    }
+                }
+            }
+        }
+        positions
+    }
 }
 
 #[derive(Component)]

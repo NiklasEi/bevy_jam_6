@@ -2,10 +2,10 @@ use crate::{
     gems::GemType,
     grid::{position_to_transform, GRID_HEIGHT, GRID_WIDTH},
     loading::TextureAssets,
-    player::{ActivePositions, GridPosition},
+    player::{ActivePositions, GridPosition, SnakeHead},
     AppSystems, GamePhase, GameState,
 };
-use bevy::prelude::*;
+use bevy::{platform::collections::HashSet, prelude::*};
 use bevy_rand::{global::GlobalEntropy, prelude::ChaCha8Rng};
 
 pub struct BoardPlugin;
@@ -15,7 +15,7 @@ impl Plugin for BoardPlugin {
         app.add_systems(OnEnter(GameState::Playing), fill_board)
             .add_systems(
                 Update,
-                mark_exploding
+                explode
                     .in_set(AppSystems::Match)
                     .run_if(in_state(GamePhase::Playing))
                     .run_if(resource_changed::<ActivePositions>),
@@ -26,18 +26,32 @@ impl Plugin for BoardPlugin {
 #[derive(Component)]
 struct Exploding;
 
-fn mark_exploding(
-    active: Res<ActivePositions>,
+fn explode(
+    head: Query<&GridPosition, With<SnakeHead>>,
     board: Res<Board>,
     mut commands: Commands,
     exploding: Query<Entity, With<Exploding>>,
     asset: Res<TextureAssets>,
-) {
+) -> Result {
     exploding
         .iter()
         .for_each(|entity| commands.entity(entity).despawn());
 
-    let exploding = board.find_matches(&active.0);
+    let mut checked = [[false; GRID_HEIGHT]; GRID_WIDTH];
+    let mut exploding = [[false; GRID_HEIGHT]; GRID_WIDTH];
+    let mut active = vec![head.single()?.clone()];
+    let mut iteration = 0;
+    loop {
+        let new_possitions = board.find_matches(&active, &mut checked, &mut exploding);
+        iteration += 1;
+        if new_possitions.is_empty() {
+            break;
+        }
+        let neighbors = GridPosition::surroundings(&new_possitions.into_iter().collect::<Vec<_>>());
+        active = neighbors.into_iter().collect::<Vec<_>>();
+    }
+    info!("Did {iteration} iterations!");
+
     for x in 0..GRID_WIDTH {
         for y in 0..GRID_HEIGHT {
             if exploding[x][y] {
@@ -51,6 +65,8 @@ fn mark_exploding(
             }
         }
     }
+
+    Ok(())
 }
 
 #[derive(Resource, Default)]
@@ -67,114 +83,140 @@ impl Board {
         }
     }
 
-    fn find_matches(&self, active_slots: &Vec<GridPosition>) -> [[bool; GRID_HEIGHT]; GRID_WIDTH] {
-        let mut checked = [[false; GRID_HEIGHT]; GRID_WIDTH];
-        let mut exploding = [[false; GRID_HEIGHT]; GRID_WIDTH];
+    fn find_matches(
+        &self,
+        active_slots: &Vec<GridPosition>,
+        checked: &mut [[bool; GRID_HEIGHT]; GRID_WIDTH],
+        exploding: &mut [[bool; GRID_HEIGHT]; GRID_WIDTH],
+    ) -> HashSet<GridPosition> {
+        let mut positions = HashSet::default();
         for slot in active_slots {
-            if checked[slot.x][slot.y] {
-                continue;
-            }
-            checked[slot.x][slot.y] = true;
-            let gem_type = self.gems[slot.x][slot.y].gem_type.clone();
-
-            let mut x_diff = 1;
-            let mut y_diff = 1;
-            let mut matched_slot = false;
-            let mut matched_x_slot = false;
-            let mut matched_x_plus = false;
-            let mut matched_y_slot = false;
-            let mut matched_y_plus = false;
-            while in_bounds(slot.x + x_diff, slot.y)
-                && self.gems[slot.x + x_diff][slot.y].gem_type == gem_type
-            {
-                match x_diff {
-                    1 => matched_x_plus = true,
-                    2 => {
-                        matched_slot = true;
-                        matched_x_slot = true;
-                        exploding[slot.x + 1][slot.y] = true;
-                        exploding[slot.x + 2][slot.y] = true;
-                    }
-                    i => exploding[slot.x + i][slot.y] = true,
-                };
-                x_diff += 1;
-            }
-            x_diff = 1;
-            while slot.x >= x_diff
-                && in_bounds(slot.x - x_diff, slot.y)
-                && self.gems[slot.x - x_diff][slot.y].gem_type == gem_type
-            {
-                match x_diff {
-                    1 => {
-                        if matched_x_plus {
-                            exploding[slot.x - 1][slot.y] = true;
-                            if !matched_x_slot {
-                                matched_slot = true;
-                                exploding[slot.x + 1][slot.y] = true;
-                            }
-                        }
-                    }
-                    2 => {
-                        matched_slot = true;
-                        if !matched_x_plus {
-                            exploding[slot.x - 1][slot.y] = true;
-                        }
-                        exploding[slot.x - 2][slot.y] = true;
-                    }
-                    i => exploding[slot.x - i][slot.y] = true,
-                };
-                x_diff += 1;
-            }
-
-            while in_bounds(slot.x, slot.y + y_diff)
-                && self.gems[slot.x][slot.y + y_diff].gem_type == gem_type
-            {
-                match y_diff {
-                    1 => matched_y_plus = true,
-                    2 => {
-                        matched_slot = true;
-                        matched_y_slot = true;
-                        exploding[slot.x][slot.y + 1] = true;
-                        exploding[slot.x][slot.y + 2] = true;
-                    }
-                    i => exploding[slot.x][slot.y + i] = true,
-                };
-                y_diff += 1;
-            }
-            y_diff = 1;
-            while slot.y >= y_diff
-                && in_bounds(slot.x, slot.y - y_diff)
-                && self.gems[slot.x][slot.y - y_diff].gem_type == gem_type
-            {
-                match y_diff {
-                    1 => {
-                        if matched_y_plus {
-                            exploding[slot.x][slot.y - 1] = true;
-                            if !matched_y_slot {
-                                matched_slot = true;
-                                exploding[slot.x][slot.y + 1] = true;
-                            }
-                        }
-                    }
-                    2 => {
-                        matched_slot = true;
-                        if !matched_y_plus {
-                            exploding[slot.x][slot.y - 1] = true;
-                        }
-                        exploding[slot.x][slot.y - 2] = true;
-                    }
-                    i => exploding[slot.x][slot.y - i] = true,
-                };
-                y_diff += 1;
-            }
-
-            if matched_slot {
-                exploding[slot.x][slot.y] = true;
-            }
+            self.check_slot(&slot, checked, exploding, &mut positions);
         }
 
-        exploding
+        positions
     }
+
+    fn check_slot(
+        &self,
+        slot: &GridPosition,
+        checked: &mut [[bool; GRID_HEIGHT]; GRID_WIDTH],
+        exploding: &mut [[bool; GRID_HEIGHT]; GRID_WIDTH],
+        positions: &mut HashSet<GridPosition>,
+    ) -> bool {
+        if checked[slot.x][slot.y] {
+            return false;
+        }
+        checked[slot.x][slot.y] = true;
+        let gem_type = self.gems[slot.x][slot.y].gem_type.clone();
+
+        let mut x_diff = 1;
+        let mut y_diff = 1;
+        let mut matched_slot = false;
+        let mut matched_x_slot = false;
+        let mut matched_x_plus = false;
+        let mut matched_y_slot = false;
+        let mut matched_y_plus = false;
+        while in_bounds(slot.x + x_diff, slot.y)
+            && self.gems[slot.x + x_diff][slot.y].gem_type == gem_type
+        {
+            match x_diff {
+                1 => matched_x_plus = true,
+                2 => {
+                    matched_slot = true;
+                    matched_x_slot = true;
+                    mark_for_explosion(slot.x + 1, slot.y, positions, exploding);
+                    mark_for_explosion(slot.x + 2, slot.y, positions, exploding);
+                }
+                i => exploding[slot.x + i][slot.y] = true,
+            };
+            x_diff += 1;
+        }
+        x_diff = 1;
+        while slot.x >= x_diff
+            && in_bounds(slot.x - x_diff, slot.y)
+            && self.gems[slot.x - x_diff][slot.y].gem_type == gem_type
+        {
+            match x_diff {
+                1 => {
+                    if matched_x_plus {
+                        mark_for_explosion(slot.x - 1, slot.y, positions, exploding);
+                        if !matched_x_slot {
+                            matched_slot = true;
+                            mark_for_explosion(slot.x + 1, slot.y, positions, exploding);
+                        }
+                    }
+                }
+                2 => {
+                    matched_slot = true;
+                    if !matched_x_plus {
+                        mark_for_explosion(slot.x - 1, slot.y, positions, exploding);
+                    }
+                    mark_for_explosion(slot.x - 2, slot.y, positions, exploding);
+                }
+                i => exploding[slot.x - i][slot.y] = true,
+            };
+            x_diff += 1;
+        }
+
+        while in_bounds(slot.x, slot.y + y_diff)
+            && self.gems[slot.x][slot.y + y_diff].gem_type == gem_type
+        {
+            match y_diff {
+                1 => matched_y_plus = true,
+                2 => {
+                    matched_slot = true;
+                    matched_y_slot = true;
+                    mark_for_explosion(slot.x, slot.y + 1, positions, exploding);
+                    mark_for_explosion(slot.x, slot.y + 2, positions, exploding);
+                }
+                i => exploding[slot.x][slot.y + i] = true,
+            };
+            y_diff += 1;
+        }
+        y_diff = 1;
+        while slot.y >= y_diff
+            && in_bounds(slot.x, slot.y - y_diff)
+            && self.gems[slot.x][slot.y - y_diff].gem_type == gem_type
+        {
+            match y_diff {
+                1 => {
+                    if matched_y_plus {
+                        mark_for_explosion(slot.x, slot.y - 1, positions, exploding);
+                        if !matched_y_slot {
+                            matched_slot = true;
+                            mark_for_explosion(slot.x, slot.y + 1, positions, exploding);
+                        }
+                    }
+                }
+                2 => {
+                    matched_slot = true;
+                    if !matched_y_plus {
+                        mark_for_explosion(slot.x, slot.y - 1, positions, exploding);
+                    }
+                    mark_for_explosion(slot.x, slot.y - 2, positions, exploding);
+                }
+                i => exploding[slot.x][slot.y - i] = true,
+            };
+            y_diff += 1;
+        }
+
+        if matched_slot {
+            mark_for_explosion(slot.x, slot.y, positions, exploding);
+        }
+
+        matched_slot
+    }
+}
+
+fn mark_for_explosion(
+    x: usize,
+    y: usize,
+    positions: &mut HashSet<GridPosition>,
+    exploding: &mut [[bool; GRID_HEIGHT]; GRID_WIDTH],
+) {
+    exploding[x][y] = true;
+    positions.insert(GridPosition { x, y });
 }
 
 fn in_bounds(x: usize, y: usize) -> bool {
