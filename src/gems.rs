@@ -43,7 +43,7 @@ fn fall(
     time: Res<Time>,
     gems: Query<(Entity, &mut Transform, &GridPosition), With<Falling>>,
 ) {
-    let speed = 1_000.;
+    let speed = 500.;
     for (entity, mut transform, position) in gems {
         let diff = position_to_transform(position).extend(0.) - transform.translation;
         if diff.length() < time.delta_secs() * speed {

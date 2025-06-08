@@ -196,7 +196,7 @@ fn explode(
                     Transform::from_xyz(
                         (-(GRID_WIDTH as f32) / 2. + position.x as f32 + 0.5) * TILE_SIZE,
                         TILE_SIZE * (GRID_HEIGHT as f32) / 2.
-                            + (spawn_count - spawn + 3) as f32 * TILE_SIZE / 2.,
+                            + (spawn_count - spawn + 1) as f32 * TILE_SIZE * 1.5,
                         0.,
                     ),
                     Sprite::from_image(asset.gem(&gem_type)),
