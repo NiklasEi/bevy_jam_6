@@ -250,7 +250,7 @@ fn grow_snake(
 #[derive(Resource, Default, Debug)]
 struct SnakePositions([[Vec<Entity>; GRID_HEIGHT]; GRID_WIDTH]);
 
-#[derive(Component, Clone, Debug, Hash, Eq, PartialEq)]
+#[derive(Component, Clone, Debug, Hash, Eq, PartialEq, Default)]
 #[component(immutable)]
 pub struct GridPosition {
     pub x: usize,
@@ -289,7 +289,15 @@ pub struct SnakePart;
 
 fn on_grid_position_insert(
     trigger: Trigger<OnInsert, GridPosition>,
-    query: Query<&GridPosition, (Without<NewBody>, With<SnakePart>, Without<SnakeHead>)>,
+    query: Query<
+        &GridPosition,
+        (
+            Without<NewBody>,
+            With<SnakePart>,
+            Without<SnakeHead>,
+            Without<SnakeTail>,
+        ),
+    >,
     mut positions: ResMut<SnakePositions>,
 ) {
     if let Ok(grid_position) = query.get(trigger.target()) {
@@ -299,7 +307,15 @@ fn on_grid_position_insert(
 
 fn on_grid_position_replaced(
     trigger: Trigger<OnReplace, GridPosition>,
-    query: Query<&GridPosition, (Without<NewBody>, With<SnakePart>, Without<SnakeHead>)>,
+    query: Query<
+        &GridPosition,
+        (
+            Without<NewBody>,
+            With<SnakePart>,
+            Without<SnakeHead>,
+            Without<SnakeTail>,
+        ),
+    >,
     new_parts: Query<Entity, With<NewBody>>,
     mut positions: ResMut<SnakePositions>,
     mut commands: Commands,

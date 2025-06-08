@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use crate::{
     actions::Orientation,
     gems::{Falling, GemType},
@@ -36,14 +38,21 @@ impl Plugin for BoardPlugin {
 }
 
 fn tail_manipulation(
+    mut last_checked: Local<GridPosition>,
     mut board: ResMut<Board>,
     tail: Query<(&GridPosition, &Orientation), (With<SnakeTail>, Changed<GridPosition>)>,
     mut commands: Commands,
 ) -> Result {
-    info!("Checking for switch");
     let Ok((new_position, orientation)) = tail.single() else {
         return Ok(());
     };
+
+    if last_checked.deref() == new_position {
+        return Ok(());
+    }
+
+    *last_checked = new_position.clone();
+    info!("Checking for switch");
     let position = orientation.previous_position(new_position);
 
     let matches = board.find_matches(
@@ -115,6 +124,7 @@ fn tail_manipulation(
 #[derive(Component)]
 struct Exploding(pub u8);
 
+#[allow(clippy::too_many_arguments)]
 fn explode(
     head: Query<&GridPosition, With<SnakeHead>>,
     mut board: ResMut<Board>,
@@ -421,8 +431,35 @@ impl Default for Gem {
     }
 }
 
-pub fn fill_board(mut commands: Commands, mut rng: GlobalEntropy<ChaCha8Rng>) {
+pub fn fill_board(
+    mut commands: Commands,
+    mut rng: GlobalEntropy<ChaCha8Rng>,
+    snake_head: Query<&GridPosition, With<SnakeHead>>,
+) -> Result {
+    let head = snake_head.single()?;
     let mut board = Board::default();
     board.randomize_gems(&mut rng);
+    let surroundings = GridPosition::surroundings(&vec![head.clone()])
+        .into_iter()
+        .collect::<Vec<_>>();
+
+    let mut rounds = 0;
+    loop {
+        let matches = board.find_matches(
+            1,
+            &surroundings,
+            &mut [[false; GRID_HEIGHT]; GRID_WIDTH],
+            &mut [[0; GRID_HEIGHT]; GRID_WIDTH],
+        );
+        if matches.is_empty() {
+            break;
+        }
+        rounds += 1;
+        board.randomize_gems(&mut rng);
+    }
+
+    info!("Took {rounds} rounds to find valid board");
     commands.insert_resource(board);
+
+    Ok(())
 }
