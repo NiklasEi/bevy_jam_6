@@ -21,7 +21,8 @@ impl Plugin for GemsPlugin {
                 (fall, stop_waiting)
                     .chain()
                     .run_if(in_state(GamePhase::Waiting)),
-            );
+            )
+            .add_systems(OnEnter(GameState::Restarting), remove_gems);
     }
 }
 
@@ -69,7 +70,7 @@ fn draw_board(mut commands: Commands, assets: Res<TextureAssets>, mut board: Res
                         position_to_transform(&position).extend(0.)
                             + Vec3::new(
                                 0.,
-                                TILE_SIZE * GRID_HEIGHT as f32 + y as f32 * TILE_SIZE / 2.,
+                                TILE_SIZE * (GRID_HEIGHT + 1) as f32 + y as f32 * TILE_SIZE / 2.,
                                 0.,
                             ),
                     ),
@@ -81,6 +82,12 @@ fn draw_board(mut commands: Commands, assets: Res<TextureAssets>, mut board: Res
                 .id();
             board.gems[x][y].entity = Some(id);
         }
+    }
+}
+
+fn remove_gems(mut commands: Commands, gems: Query<Entity, With<GemType>>) {
+    for gem in gems {
+        commands.entity(gem).despawn();
     }
 }
 

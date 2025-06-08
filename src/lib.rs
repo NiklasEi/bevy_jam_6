@@ -87,8 +87,13 @@ impl Plugin for GamePlugin {
                 AppSystems::Match,
             )
                 .chain(),
-        );
+        )
+        .add_systems(Update, restart.run_if(in_state(GameState::Restarting)));
     }
+}
+
+fn restart(mut next: ResMut<NextState<GameState>>) {
+    next.set(GameState::Playing);
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, Eq, PartialEq, Hash, PartialOrd, Ord)]

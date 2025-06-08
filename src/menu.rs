@@ -1,5 +1,6 @@
 use crate::loading::TextureAssets;
 use crate::{GamePhase, GameState};
+use bevy::color::palettes::tailwind::SLATE_200;
 use bevy::prelude::*;
 
 pub struct MenuPlugin;
@@ -8,7 +9,7 @@ pub struct MenuPlugin;
 /// The menu is only drawn during the State `GameState::Menu` and is removed when that state is exited
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Menu), setup_menu)
+        app.add_systems(OnEnter(GameState::Menu), (camera, setup_menu))
             .add_systems(Update, click_play_button.run_if(in_state(GameState::Menu)))
             .add_systems(OnExit(GameState::Menu), cleanup_menu)
             .add_systems(Update, start_pause.run_if(in_state(GamePhase::Playing)))
@@ -86,50 +87,60 @@ impl Default for ButtonColors {
 #[derive(Component)]
 struct Menu;
 
+fn camera(mut commands: Commands) {
+    commands.spawn((Camera2d, Msaa::Off));
+}
+
 fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>, state: Res<State<GameState>>) {
     info!("menu");
-    commands.spawn((Camera2d, Msaa::Off));
-    commands
-        .spawn((
+    let mut background = commands.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        Menu,
+    ));
+    if state.get() == &GameState::Playing {
+        background.insert(BackgroundColor(Color::Srgba(SLATE_200.with_alpha(0.2))));
+    }
+    background.with_children(|children| {
+        let button_colors = ButtonColors::default();
+        let mut button = children.spawn((
+            Button,
             Node {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
+                width: Val::Px(250.0),
+                height: Val::Px(80.0),
                 justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..Default::default()
+            },
+            BackgroundColor(button_colors.normal),
+            BorderRadius::all(Val::Px(10.)),
+            button_colors,
+        ));
+
+        if state.get() == &GameState::Playing {
+            button.insert(ChangeState(GameState::Restarting));
+        } else {
+            button.insert(ChangeState(GameState::Playing));
+        }
+        button.with_child((
+            Text::new(if state.get() == &GameState::Menu {
+                "Play"
+            } else {
+                "Try again"
+            }),
+            TextFont {
+                font_size: 40.0,
                 ..default()
             },
-            Menu,
-        ))
-        .with_children(|children| {
-            let button_colors = ButtonColors::default();
-            children
-                .spawn((
-                    Button,
-                    Node {
-                        width: Val::Px(140.0),
-                        height: Val::Px(50.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        ..Default::default()
-                    },
-                    BackgroundColor(button_colors.normal),
-                    button_colors,
-                    ChangeState(GameState::Playing),
-                ))
-                .with_child((
-                    Text::new(if state.get() == &GameState::Menu {
-                        "Play"
-                    } else {
-                        "Try again"
-                    }),
-                    TextFont {
-                        font_size: 40.0,
-                        ..default()
-                    },
-                    TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
-                ));
-        });
+            TextColor(Color::linear_rgb(0.9, 0.9, 0.9)),
+        ));
+    });
     commands
         .spawn((
             Node {
@@ -141,6 +152,7 @@ fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>, state: Res<S
                 position_type: PositionType::Absolute,
                 ..default()
             },
+            ZIndex(1),
             Menu,
         ))
         .with_children(|children| {
@@ -148,13 +160,14 @@ fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>, state: Res<S
                 .spawn((
                     Button,
                     Node {
-                        width: Val::Px(170.0),
+                        width: Val::Px(190.0),
                         height: Val::Px(50.0),
                         justify_content: JustifyContent::SpaceAround,
                         align_items: AlignItems::Center,
                         padding: UiRect::all(Val::Px(5.)),
                         ..Default::default()
                     },
+                    BorderRadius::all(Val::Px(10.)),
                     BackgroundColor(Color::NONE),
                     ButtonColors {
                         normal: Color::NONE,
@@ -186,13 +199,14 @@ fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>, state: Res<S
                 .spawn((
                     Button,
                     Node {
-                        width: Val::Px(170.0),
+                        width: Val::Px(190.0),
                         height: Val::Px(50.0),
                         justify_content: JustifyContent::SpaceAround,
                         align_items: AlignItems::Center,
                         padding: UiRect::all(Val::Px(5.)),
                         ..default()
                     },
+                    BorderRadius::all(Val::Px(10.)),
                     BackgroundColor(Color::NONE),
                     ButtonColors {
                         normal: Color::NONE,

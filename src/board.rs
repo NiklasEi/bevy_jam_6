@@ -2,7 +2,7 @@ use crate::{
     gems::{Falling, GemType},
     grid::{position_to_transform, GRID_HEIGHT, GRID_WIDTH, TILE_SIZE},
     loading::TextureAssets,
-    player::{ActivePositions, GridPosition, SnakeHead},
+    player::{ActivePositions, GridPosition, SnakeHead, SnakePart},
     AppSystems, GamePhase, GameState,
 };
 use bevy::{platform::collections::HashSet, prelude::*};
@@ -36,15 +36,10 @@ fn explode(
     head: Query<&GridPosition, With<SnakeHead>>,
     mut board: ResMut<Board>,
     mut commands: Commands,
-    // exploding: Query<Entity, With<Exploding>>,
     asset: Res<TextureAssets>,
     mut rng: GlobalEntropy<ChaCha8Rng>,
     mut next_phase: ResMut<NextState<GamePhase>>,
 ) -> Result {
-    // exploding
-    //     .iter()
-    //     .for_each(|entity| commands.entity(entity).despawn());
-
     let mut checked = [[false; GRID_HEIGHT]; GRID_WIDTH];
     let mut exploding = [[0; GRID_HEIGHT]; GRID_WIDTH];
     let mut active = vec![head.single()?.clone()];
@@ -80,13 +75,6 @@ fn explode(
                 commands
                     .entity(entity)
                     .insert(Exploding(exploding[column][y]));
-                // commands.spawn((
-                //     Exploding,
-                //     Transform::from_translation(
-                //         position_to_transform(&GridPosition { x: column, y }).extend(0.),
-                //     ),
-                //     Sprite::from_image(asset.collision.clone()),
-                // ));
             } else if spawn_count > 0 {
                 commands.entity(entity).insert((
                     Falling,
@@ -106,14 +94,11 @@ fn explode(
             };
             let id = commands
                 .spawn((
-                    Transform::from_translation(
-                        position_to_transform(&position).extend(0.)
-                            + Vec3::new(
-                                0.,
-                                TILE_SIZE * (GRID_HEIGHT as f32) / 2.
-                                    + (spawn_count - spawn) as f32 * TILE_SIZE / 2.,
-                                0.,
-                            ),
+                    Transform::from_xyz(
+                        (-(GRID_WIDTH as f32) / 2. + position.x as f32) * TILE_SIZE,
+                        TILE_SIZE * (GRID_HEIGHT as f32) / 2.
+                            + (spawn_count - spawn + 2) as f32 * TILE_SIZE / 2.,
+                        0.,
                     ),
                     Sprite::from_image(asset.gem(&gem_type)),
                     gem_type.clone(),
@@ -142,7 +127,8 @@ fn reset_exploding_timer(mut commands: Commands) {
 }
 
 fn animate_exploding_gems(
-    exploding: Query<(Entity, &mut Exploding)>,
+    exploding: Query<(Entity, &GridPosition, &mut Exploding), Without<SnakePart>>,
+    snake_body: Query<&GridPosition, (With<SnakePart>, Without<SnakeHead>)>,
     mut commands: Commands,
     mut timer: ResMut<ExplodingTimer>,
     time: Res<Time>,
@@ -153,8 +139,12 @@ fn animate_exploding_gems(
     }
     timer.0.tick(time.delta());
     if timer.0.just_finished() {
-        for (entity, mut exploding) in exploding {
+        for (entity, position, mut exploding) in exploding {
             if exploding.0 == 1 {
+                if snake_body.iter().any(|body| body == position) {
+                    info!("Snake got hit by match at {}/{}", position.x, position.y);
+                    next_phase.set(GamePhase::Lost);
+                }
                 commands.entity(entity).despawn();
             } else {
                 exploding.0 -= 1;

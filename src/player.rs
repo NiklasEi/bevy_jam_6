@@ -37,7 +37,8 @@ impl Plugin for PlayerPlugin {
                     .run_if(in_state(GamePhase::Playing)),
             )
             .add_observer(on_grid_position_insert)
-            .add_observer(on_grid_position_replaced);
+            .add_observer(on_grid_position_replaced)
+            .add_systems(OnEnter(GameState::Restarting), remove_player);
     }
 }
 
@@ -52,6 +53,12 @@ pub struct SnakeTail;
 
 #[derive(Component)]
 pub struct SnakeTailInner;
+
+fn remove_player(mut commands: Commands, snake: Query<Entity, With<SnakePart>>) {
+    for part in snake {
+        commands.entity(part).despawn();
+    }
+}
 
 fn spawn_player(
     mut commands: Commands,
@@ -275,7 +282,7 @@ pub struct SnakePart;
 
 fn on_grid_position_insert(
     trigger: Trigger<OnInsert, GridPosition>,
-    query: Query<&GridPosition, (Without<NewBody>, With<SnakePart>)>,
+    query: Query<&GridPosition, (Without<NewBody>, With<SnakePart>, Without<SnakeHead>)>,
     mut positions: ResMut<SnakePositions>,
 ) {
     if let Ok(grid_position) = query.get(trigger.target()) {
@@ -285,7 +292,7 @@ fn on_grid_position_insert(
 
 fn on_grid_position_replaced(
     trigger: Trigger<OnReplace, GridPosition>,
-    query: Query<&GridPosition, (Without<NewBody>, With<SnakePart>)>,
+    query: Query<&GridPosition, (Without<NewBody>, With<SnakePart>, Without<SnakeHead>)>,
     new_parts: Query<Entity, With<NewBody>>,
     mut positions: ResMut<SnakePositions>,
     mut commands: Commands,
@@ -304,14 +311,18 @@ fn on_grid_position_replaced(
     }
 }
 
-fn check_collisions(positions: Res<SnakePositions>) {
-    for (x, column) in positions.0.iter().enumerate() {
-        for (y, entities) in column.iter().enumerate() {
-            if entities.len() > 1 {
-                info!("Collision at {x}/{y}")
-            }
-        }
+fn check_collisions(
+    positions: Res<SnakePositions>,
+    head: Query<&GridPosition, With<SnakeHead>>,
+    mut next_phase: ResMut<NextState<GamePhase>>,
+) -> Result {
+    let head = head.single()?;
+    if !positions.0[head.x][head.y].is_empty() {
+        info!("Snake bit itself at {}/{}", head.x, head.y);
+        next_phase.set(GamePhase::Lost);
     }
+
+    Ok(())
 }
 
 #[derive(Default, Resource)]

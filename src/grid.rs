@@ -18,7 +18,8 @@ pub const TILE_SIZE: f32 = 64.;
 impl Plugin for GridPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
-            .add_systems(OnEnter(GameState::Playing), spawn_grid);
+            .add_systems(OnEnter(GameState::Playing), spawn_grid)
+            .add_systems(OnEnter(GameState::Restarting), remove_grid);
     }
 }
 
@@ -87,6 +88,9 @@ pub fn position_to_transform(position: &GridPosition) -> Vec2 {
     )
 }
 
+#[derive(Component)]
+struct GridTile;
+
 fn spawn_grid(mut commands: Commands, textures: Res<TextureAssets>) {
     for column in 0..GRID_WIDTH {
         for row in 1..=GRID_HEIGHT {
@@ -97,7 +101,14 @@ fn spawn_grid(mut commands: Commands, textures: Res<TextureAssets>) {
                     (GRID_HEIGHT as f32 / 2. - row as f32) * TILE_SIZE,
                     0.,
                 )),
+                GridTile,
             ));
         }
+    }
+}
+
+fn remove_grid(mut commands: Commands, tiles: Query<Entity, With<GridTile>>) {
+    for tile in tiles {
+        commands.entity(tile).despawn();
     }
 }
