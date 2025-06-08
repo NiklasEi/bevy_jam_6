@@ -4,6 +4,7 @@ use crate::{
     grid::{GRID_HEIGHT, GRID_WIDTH, TILE_SIZE},
     loading::TextureAssets,
     player::{ActivePositions, GridPosition, SnakeHead, SnakePart, SnakeTail},
+    ui::{BiggestChainReaction, Explosions, ExplosionsTotal},
     AppSystems, GamePhase, GameState,
 };
 use bevy::{platform::collections::HashSet, prelude::*};
@@ -121,6 +122,9 @@ fn explode(
     asset: Res<TextureAssets>,
     mut rng: GlobalEntropy<ChaCha8Rng>,
     mut next_phase: ResMut<NextState<GamePhase>>,
+    mut explosions: ResMut<Explosions>,
+    mut explosions_total: ResMut<ExplosionsTotal>,
+    mut biggest_chain_reaction: ResMut<BiggestChainReaction>,
 ) -> Result {
     let mut checked = [[false; GRID_HEIGHT]; GRID_WIDTH];
     let mut exploding = [[0; GRID_HEIGHT]; GRID_WIDTH];
@@ -144,6 +148,7 @@ fn explode(
     }
     next_phase.set(GamePhase::Exploding);
 
+    let mut count = 0;
     #[allow(clippy::needless_range_loop)]
     for column in 0..GRID_WIDTH {
         let mut spawn_count = 0;
@@ -168,6 +173,7 @@ fn explode(
                 board.gems[column][y - spawn_count] = board.gems[column][y].clone();
             }
         }
+        count += spawn_count;
         for spawn in 1..=spawn_count {
             let gem_type = GemType::random(&mut rng);
             let position = GridPosition {
@@ -193,6 +199,12 @@ fn explode(
                 entity: Some(id),
             };
         }
+    }
+
+    explosions.0 += count;
+    explosions_total.0 += count;
+    if count > biggest_chain_reaction.0 {
+        biggest_chain_reaction.0 = count;
     }
 
     Ok(())

@@ -6,7 +6,7 @@ use crate::following::Trailing;
 use crate::grid::{position_to_transform, random_placement, GRID_HEIGHT, GRID_WIDTH};
 use crate::loading::TextureAssets;
 use crate::movement::MovementTimer;
-use crate::ui::SnakeLength;
+use crate::ui::{Explosions, SnakeLength};
 use crate::{AppSystems, GamePhase, GameState};
 use bevy::platform::collections::HashSet;
 use bevy::prelude::*;
@@ -69,6 +69,7 @@ fn spawn_player(
 ) {
     commands.insert_resource(GrowthTimer(Timer::from_seconds(5., TimerMode::Repeating)));
     commands.insert_resource(SnakePositions::default());
+    commands.insert_resource(Explosions::default());
     let mut placements = random_placement(4, &mut rng);
     length.0 = 4;
     info!("Starting positions: {placements:?}");
