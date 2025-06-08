@@ -64,6 +64,8 @@ pub struct TextureAssets {
     pub gem3: Handle<Image>,
     #[asset(path = "textures/gem4.png")]
     pub gem4: Handle<Image>,
+    #[asset(path = "textures/gem5.png")]
+    pub gem5: Handle<Image>,
 }
 
 impl TextureAssets {
@@ -73,6 +75,7 @@ impl TextureAssets {
             GemType::Two => self.gem2.clone(),
             GemType::Three => self.gem3.clone(),
             GemType::Four => self.gem4.clone(),
+            GemType::Five => self.gem5.clone(),
         }
     }
 }

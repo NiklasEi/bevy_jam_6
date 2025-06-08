@@ -97,15 +97,17 @@ pub enum GemType {
     Two,
     Three,
     Four,
+    Five,
 }
 
 impl GemType {
     pub fn random(rng: &mut GlobalEntropy<ChaCha8Rng>) -> Self {
-        match rng.gen_range(0..4) {
+        match rng.gen_range(0..5) {
             0 => GemType::One,
             1 => GemType::Two,
             2 => GemType::Three,
             3 => GemType::Four,
+            4 => GemType::Five,
             _ => unreachable!(),
         }
     }
