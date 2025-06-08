@@ -53,9 +53,9 @@ pub struct TextureAssets {
     #[asset(path = "textures/tile.png")]
     pub tile: Handle<Image>,
     #[asset(path = "textures/active.png")]
-    pub active: Handle<Image>,
+    pub _active: Handle<Image>,
     #[asset(path = "textures/collision.png")]
-    pub collision: Handle<Image>,
+    pub _collision: Handle<Image>,
     #[asset(path = "textures/gem1.png")]
     pub gem1: Handle<Image>,
     #[asset(path = "textures/gem2.png")]

@@ -28,7 +28,7 @@ impl Plugin for PlayerPlugin {
                 Update,
                 (
                     update_player_direction.in_set(AppSystems::Input),
-                    (check_collisions, (mark_taken, update_active))
+                    (check_collisions, update_active)
                         .run_if(in_state(GamePhase::Playing))
                         .run_if(resource_changed::<SnakePositions>)
                         .chain()
@@ -347,7 +347,7 @@ fn update_active(
 #[derive(Component)]
 struct ActiveMarker;
 
-fn mark_taken(
+fn _mark_taken(
     active: Query<Entity, With<ActiveMarker>>,
     mut commands: Commands,
     asset: Res<TextureAssets>,
@@ -365,7 +365,7 @@ fn mark_taken(
                     Transform::from_translation(
                         position_to_transform(&GridPosition { x, y }).extend(0.),
                     ),
-                    Sprite::from_image(asset.active.clone()),
+                    Sprite::from_image(asset._active.clone()),
                 ));
             } else if positions.0[x][y].len() > 1 {
                 commands.spawn((
@@ -373,7 +373,7 @@ fn mark_taken(
                     Transform::from_translation(
                         position_to_transform(&GridPosition { x, y }).extend(0.),
                     ),
-                    Sprite::from_image(asset.collision.clone()),
+                    Sprite::from_image(asset._collision.clone()),
                 ));
             }
         }
