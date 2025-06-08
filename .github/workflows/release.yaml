@@ -178,6 +178,7 @@ jobs:
         uses: NiklasEi/wasm-opt-action@v2
         with:
           file: dist/*.wasm
+          options: -0s --enable-bulk-memory
       - name: Zip release
         uses: vimtor/action-zip@v1.1
         with:
