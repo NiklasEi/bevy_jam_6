@@ -88,6 +88,7 @@ impl Plugin for GamePlugin {
                 AppSystems::Spawn,
                 AppSystems::CheckCollision,
                 AppSystems::Match,
+                AppSystems::Manipulate,
             )
                 .chain(),
         )
@@ -106,4 +107,5 @@ enum AppSystems {
     Spawn,
     CheckCollision,
     Match,
+    Manipulate,
 }

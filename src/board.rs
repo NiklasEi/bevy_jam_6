@@ -1,8 +1,9 @@
 use crate::{
+    actions::Orientation,
     gems::{Falling, GemType},
     grid::{GRID_HEIGHT, GRID_WIDTH, TILE_SIZE},
     loading::TextureAssets,
-    player::{ActivePositions, GridPosition, SnakeHead, SnakePart},
+    player::{ActivePositions, GridPosition, SnakeHead, SnakePart, SnakeTail},
     AppSystems, GamePhase, GameState,
 };
 use bevy::{platform::collections::HashSet, prelude::*};
@@ -20,6 +21,10 @@ impl Plugin for BoardPlugin {
                         .in_set(AppSystems::Match)
                         .run_if(in_state(GamePhase::Playing))
                         .run_if(resource_changed::<ActivePositions>),
+                    tail_manipulation
+                        .in_set(AppSystems::Manipulate)
+                        .run_if(in_state(GamePhase::Playing))
+                        .run_if(|exploding: Query<&Exploding>| exploding.is_empty()),
                     animate_exploding_gems
                         .in_set(AppSystems::Match)
                         .run_if(in_state(GamePhase::Exploding)),
@@ -27,6 +32,83 @@ impl Plugin for BoardPlugin {
             )
             .add_systems(OnEnter(GamePhase::Exploding), reset_exploding_timer);
     }
+}
+
+fn tail_manipulation(
+    mut board: ResMut<Board>,
+    tail: Query<(&GridPosition, &Orientation), (With<SnakeTail>, Changed<GridPosition>)>,
+    mut commands: Commands,
+) -> Result {
+    info!("Checking for switch");
+    let Ok((new_position, orientation)) = tail.single() else {
+        return Ok(());
+    };
+    let position = orientation.previous_position(new_position);
+
+    let matches = board.find_matches(
+        1,
+        &vec![position.clone()],
+        &mut [[false; GRID_HEIGHT]; GRID_WIDTH],
+        &mut [[0; GRID_HEIGHT]; GRID_WIDTH],
+    );
+    if !matches.is_empty() {
+        return Ok(());
+    }
+
+    let neighboors = GridPosition::surroundings(&vec![position.clone()]);
+    for target in neighboors {
+        if &target == new_position {
+            continue;
+        }
+        let matches = board.find_matches(
+            1,
+            &vec![target.clone()],
+            &mut [[false; GRID_HEIGHT]; GRID_WIDTH],
+            &mut [[0; GRID_HEIGHT]; GRID_WIDTH],
+        );
+        if !matches.is_empty() {
+            continue;
+        }
+
+        let mut new_board = board.clone();
+        let center = new_board.gems[position.x][position.y].clone();
+        new_board.gems[position.x][position.y] = new_board.gems[target.x][target.y].clone();
+        new_board.gems[target.x][target.y] = center;
+        let matches = new_board.find_matches(
+            1,
+            &vec![position.clone(), target.clone()],
+            &mut [[false; GRID_HEIGHT]; GRID_WIDTH],
+            &mut [[0; GRID_HEIGHT]; GRID_WIDTH],
+        );
+        if !matches.is_empty() {
+            info!(
+                "Switching {}/{} with {}/{} due to match",
+                position.x, position.y, target.x, target.y
+            );
+            commands
+                .entity(new_board.gems[target.x][target.y].entity.unwrap())
+                .insert((
+                    GridPosition {
+                        x: target.x,
+                        y: target.y,
+                    },
+                    Falling,
+                ));
+            commands
+                .entity(new_board.gems[position.x][position.y].entity.unwrap())
+                .insert((
+                    GridPosition {
+                        x: position.x,
+                        y: position.y,
+                    },
+                    Falling,
+                ));
+            *board = new_board;
+            return Ok(());
+        }
+    }
+
+    Ok(())
 }
 
 #[derive(Component)]
@@ -153,7 +235,7 @@ fn animate_exploding_gems(
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone)]
 pub struct Board {
     pub gems: [[Gem; GRID_HEIGHT]; GRID_WIDTH],
 }

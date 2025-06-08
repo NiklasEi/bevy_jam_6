@@ -116,6 +116,30 @@ impl Orientation {
 
         next
     }
+
+    pub fn previous_position(&self, position: &GridPosition) -> GridPosition {
+        let mut previous = position.clone();
+        match self {
+            Orientation::Down => previous.y = (previous.y + 1) % GRID_HEIGHT,
+            Orientation::Left => previous.x = (previous.x + 1) % GRID_WIDTH,
+            Orientation::Up => {
+                if previous.y == 0 {
+                    previous.y = GRID_HEIGHT - 1;
+                } else {
+                    previous.y -= 1;
+                }
+            }
+            Orientation::Right => {
+                if previous.x == 0 {
+                    previous.x = GRID_WIDTH - 1;
+                } else {
+                    previous.x -= 1;
+                }
+            }
+        }
+
+        previous
+    }
 }
 
 #[derive(Component, Debug, Clone)]
