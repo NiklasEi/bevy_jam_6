@@ -44,6 +44,7 @@ enum GameState {
 enum GamePhase {
     #[default]
     Playing,
+    Exploding,
     Waiting,
     Pause,
 }
