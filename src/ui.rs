@@ -112,7 +112,7 @@ fn setup(mut commands: Commands, timer: Res<GrowthTimer>) {
         NextGrowthText,
     ));
     commands.spawn((
-        Text::new("Longest chain: 0"),
+        Text::new("Largest chain: 0"),
         Node {
             position_type: PositionType::Absolute,
             top: Val::Px(35.0),
@@ -166,7 +166,7 @@ fn update_other_game_ui(
     **explosions_text.single_mut()? = format!("Gems destroyed: {}", explosions.0);
     **explosions_total_text.single_mut()? = format!("Total destroyed: {}", explosions_total.0);
     **biggest_chain_reaction_text.single_mut()? =
-        format!("Longest chain: {}", biggest_chain_reaction.0);
+        format!("Largest chain: {}", biggest_chain_reaction.0);
 
     Ok(())
 }

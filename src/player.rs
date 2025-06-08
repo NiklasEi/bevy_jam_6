@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use crate::actions::{MoveDirection, NextMove, Orientation, Player};
+use crate::audio::SoundEffect;
 use crate::board::fill_board;
 use crate::following::Trailing;
 use crate::grid::{position_to_transform, random_placement, GRID_HEIGHT, GRID_WIDTH};
@@ -177,9 +178,11 @@ pub struct GrowthTimer(pub Timer);
 #[derive(Component)]
 pub struct StuckOnce;
 
+#[allow(clippy::too_many_arguments)]
 fn grow_snake(
     mut commands: Commands,
     textures: Res<TextureAssets>,
+    mut writer: EventWriter<SoundEffect>,
     inner_tail: Query<
         (
             Entity,
@@ -200,6 +203,7 @@ fn grow_snake(
 ) -> Result {
     timer.0.tick(time.delta());
     if timer.0.just_finished() {
+        writer.write(SoundEffect::Grow);
         length.0 += 1;
         let (
             inner_tail,
@@ -338,11 +342,13 @@ fn check_collisions(
     positions: Res<SnakePositions>,
     head: Query<&GridPosition, With<SnakeHead>>,
     mut next_phase: ResMut<NextState<GamePhase>>,
+    mut writer: EventWriter<SoundEffect>,
 ) -> Result {
     let head = head.single()?;
     if !positions.0[head.x][head.y].is_empty() {
         info!("Snake bit itself at {}/{}", head.x, head.y);
         next_phase.set(GamePhase::Lost);
+        writer.write(SoundEffect::NomNom);
     }
 
     Ok(())

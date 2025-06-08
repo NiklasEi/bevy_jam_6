@@ -22,6 +22,16 @@ impl Plugin for LoadingPlugin {
 pub struct AudioAssets {
     #[asset(path = "audio/background.ogg")]
     pub background: Handle<AudioSource>,
+    #[asset(path = "audio/lost.ogg")]
+    pub lost: Handle<AudioSource>,
+    #[asset(path = "audio/click.ogg")]
+    pub click: Handle<AudioSource>,
+    #[asset(path = "audio/grow.ogg")]
+    pub grow: Handle<AudioSource>,
+    #[asset(path = "audio/match.ogg")]
+    pub gem_match: Handle<AudioSource>,
+    #[asset(path = "audio/nomnom.ogg")]
+    pub nomnom: Handle<AudioSource>,
 }
 
 #[derive(AssetCollection, Resource)]

@@ -1,3 +1,4 @@
+use crate::audio::SoundEffect;
 use crate::loading::TextureAssets;
 use crate::{GamePhase, GameState};
 use bevy::color::palettes::tailwind::SLATE_200;
@@ -206,6 +207,7 @@ struct OpenLink(&'static str);
 fn click_play_button(
     input: Res<ButtonInput<KeyCode>>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut writer: EventWriter<SoundEffect>,
     mut interaction_query: Query<
         (
             &Interaction,
@@ -219,11 +221,13 @@ fn click_play_button(
 ) {
     if input.just_pressed(KeyCode::Enter) {
         next_state.set(GameState::Restarting);
+        writer.write(SoundEffect::Click);
         return;
     }
     for (interaction, mut color, button_colors, change_state, open_link) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
+                writer.write(SoundEffect::Click);
                 if let Some(state) = change_state {
                     next_state.set(state.0.clone());
                 } else if let Some(link) = open_link {

@@ -2,6 +2,7 @@ use std::ops::Deref;
 
 use crate::{
     actions::Orientation,
+    audio::SoundEffect,
     gems::{Falling, GemType},
     grid::{GRID_HEIGHT, GRID_WIDTH, TILE_SIZE},
     loading::TextureAssets,
@@ -237,17 +238,20 @@ fn animate_exploding_gems(
     mut timer: ResMut<ExplodingTimer>,
     time: Res<Time>,
     mut next_phase: ResMut<NextState<GamePhase>>,
+    mut writer: EventWriter<SoundEffect>,
 ) {
     if exploding.is_empty() {
         next_phase.set(GamePhase::Waiting);
     }
     timer.0.tick(time.delta());
     if timer.0.just_finished() {
+        writer.write(SoundEffect::GemMatch);
         for (entity, position, mut exploding) in exploding {
             if exploding.0 == 1 {
                 if snake_body.iter().any(|body| body == position) {
                     info!("Snake got hit by match at {}/{}", position.x, position.y);
                     next_phase.set(GamePhase::Lost);
+                    writer.write(SoundEffect::Lost);
                 }
                 commands.entity(entity).despawn();
             } else {
