@@ -1,6 +1,6 @@
 use crate::{
     gems::{Falling, GemType},
-    grid::{position_to_transform, GRID_HEIGHT, GRID_WIDTH, TILE_SIZE},
+    grid::{GRID_HEIGHT, GRID_WIDTH, TILE_SIZE},
     loading::TextureAssets,
     player::{ActivePositions, GridPosition, SnakeHead, SnakePart},
     AppSystems, GamePhase, GameState,

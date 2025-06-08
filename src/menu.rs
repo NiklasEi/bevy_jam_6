@@ -11,49 +11,12 @@ impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Menu), (camera, setup_menu))
             .add_systems(Update, click_play_button.run_if(in_state(GameState::Menu)))
+            .add_systems(Update, click_play_button.run_if(in_state(GamePhase::Lost)))
             .add_systems(OnExit(GameState::Menu), cleanup_menu)
             .add_systems(Update, start_pause.run_if(in_state(GamePhase::Playing)))
             .add_systems(Update, stop_pause.run_if(in_state(GamePhase::Pause)))
             .add_systems(OnEnter(GamePhase::Lost), setup_menu)
-            .add_systems(OnExit(GamePhase::Lost), cleanup_menu)
-            .add_systems(
-                Update,
-                click_restart_button.run_if(in_state(GamePhase::Lost)),
-            );
-    }
-}
-
-fn click_restart_button(
-    input: Res<ButtonInput<KeyCode>>,
-    mut next_state: ResMut<NextState<GameState>>,
-    mut interaction_query: Query<
-        (
-            &Interaction,
-            &mut BackgroundColor,
-            &ButtonColors,
-            Option<&ChangeState>,
-        ),
-        (Changed<Interaction>, With<Button>),
-    >,
-) {
-    if input.just_pressed(KeyCode::Enter) {
-        next_state.set(GameState::Restarting);
-        return;
-    }
-    for (interaction, mut color, button_colors, change_state) in &mut interaction_query {
-        match *interaction {
-            Interaction::Pressed => {
-                if let Some(state) = change_state {
-                    next_state.set(state.0.clone());
-                }
-            }
-            Interaction::Hovered => {
-                *color = button_colors.hovered.into();
-            }
-            Interaction::None => {
-                *color = button_colors.normal.into();
-            }
-        }
+            .add_systems(OnExit(GamePhase::Lost), cleanup_menu);
     }
 }
 
@@ -78,7 +41,7 @@ struct ButtonColors {
 impl Default for ButtonColors {
     fn default() -> Self {
         ButtonColors {
-            normal: Color::linear_rgb(0.15, 0.15, 0.15),
+            normal: Color::linear_rgba(0.15, 0.15, 0.15, 0.5),
             hovered: Color::linear_rgb(0.25, 0.25, 0.25),
         }
     }
@@ -241,6 +204,7 @@ struct ChangeState(GameState);
 struct OpenLink(&'static str);
 
 fn click_play_button(
+    input: Res<ButtonInput<KeyCode>>,
     mut next_state: ResMut<NextState<GameState>>,
     mut interaction_query: Query<
         (
@@ -253,6 +217,10 @@ fn click_play_button(
         (Changed<Interaction>, With<Button>),
     >,
 ) {
+    if input.just_pressed(KeyCode::Enter) {
+        next_state.set(GameState::Restarting);
+        return;
+    }
     for (interaction, mut color, button_colors, change_state, open_link) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {

@@ -10,6 +10,7 @@ mod loading;
 mod menu;
 mod movement;
 mod player;
+mod ui;
 
 use crate::actions::ActionsPlugin;
 use crate::loading::LoadingPlugin;
@@ -26,6 +27,7 @@ use bevy_enhanced_input::EnhancedInputSystem;
 use board::BoardPlugin;
 use gems::GemsPlugin;
 use grid::GridPlugin;
+use ui::GameUiPlugin;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -67,6 +69,7 @@ impl Plugin for GamePlugin {
                 InternalAudioPlugin,
                 GemsPlugin,
                 BoardPlugin,
+                GameUiPlugin,
             ));
 
         #[cfg(debug_assertions)]

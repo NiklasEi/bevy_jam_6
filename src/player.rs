@@ -6,6 +6,7 @@ use crate::following::Trailing;
 use crate::grid::{position_to_transform, random_placement, GRID_HEIGHT, GRID_WIDTH};
 use crate::loading::TextureAssets;
 use crate::movement::MovementTimer;
+use crate::ui::SnakeLength;
 use crate::{AppSystems, GamePhase, GameState};
 use bevy::platform::collections::HashSet;
 use bevy::prelude::*;
@@ -64,9 +65,11 @@ fn spawn_player(
     mut commands: Commands,
     textures: Res<TextureAssets>,
     mut rng: GlobalEntropy<ChaCha8Rng>,
+    mut length: ResMut<SnakeLength>,
 ) {
     commands.insert_resource(SnakePositions::default());
     let mut placements = random_placement(4, &mut rng);
+    length.0 = 4;
     info!("Starting positions: {placements:?}");
     let mut placement = placements.pop().unwrap();
     let head = commands
@@ -166,7 +169,7 @@ fn update_player_direction(player: Query<(&NextMove, &mut Sprite), Changed<NextM
 }
 
 #[derive(Resource)]
-struct GrowthTimer(Timer);
+pub struct GrowthTimer(pub Timer);
 
 /// Marker to not move in the next round to make space for a new snake part
 #[derive(Component)]
@@ -191,9 +194,11 @@ fn grow_snake(
     tail: Query<Entity, (With<SnakeTail>, Without<SnakeTailInner>)>,
     time: Res<Time>,
     mut timer: ResMut<GrowthTimer>,
+    mut length: ResMut<SnakeLength>,
 ) -> Result {
     timer.0.tick(time.delta());
     if timer.0.just_finished() {
+        length.0 += 1;
         let (
             inner_tail,
             transform,
