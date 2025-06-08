@@ -67,6 +67,7 @@ fn spawn_player(
     mut rng: GlobalEntropy<ChaCha8Rng>,
     mut length: ResMut<SnakeLength>,
 ) {
+    commands.insert_resource(GrowthTimer(Timer::from_seconds(5., TimerMode::Repeating)));
     commands.insert_resource(SnakePositions::default());
     let mut placements = random_placement(4, &mut rng);
     length.0 = 4;

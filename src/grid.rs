@@ -11,8 +11,8 @@ use crate::{
 
 pub struct GridPlugin;
 
-pub const GRID_WIDTH: usize = 16;
-pub const GRID_HEIGHT: usize = 10;
+pub const GRID_WIDTH: usize = 12;
+pub const GRID_HEIGHT: usize = 8;
 pub const TILE_SIZE: f32 = 64.;
 
 impl Plugin for GridPlugin {
@@ -36,7 +36,7 @@ pub fn random_placement(
         x: GRID_WIDTH / 2,
         y: GRID_HEIGHT / 2,
     };
-    let mut next_position = Vec3::new(0., 0., 1.);
+    let mut next_position = Vec3::new(TILE_SIZE / 2., 0., 1.);
     let mut next_rotation = 0.;
     for i in 0..length {
         let direction = if curves.contains(&i) {
@@ -69,9 +69,9 @@ pub fn random_placement(
 }
 
 pub fn wrap_translate(translate: &mut Vec3) {
-    if translate.x > (-(GRID_WIDTH as f32) / 2. + GRID_WIDTH as f32 - 0.5) * TILE_SIZE {
+    if translate.x > (-(GRID_WIDTH as f32) / 2. + GRID_WIDTH as f32) * TILE_SIZE {
         translate.x -= GRID_WIDTH as f32 * TILE_SIZE;
-    } else if translate.x < (-(GRID_WIDTH as f32) / 2. - 0.5) * TILE_SIZE {
+    } else if translate.x < (-(GRID_WIDTH as f32) / 2.) * TILE_SIZE {
         translate.x += GRID_WIDTH as f32 * TILE_SIZE;
     }
     if translate.y > (GRID_HEIGHT as f32 / 2. - 0.5) * TILE_SIZE {
@@ -83,7 +83,7 @@ pub fn wrap_translate(translate: &mut Vec3) {
 
 pub fn position_to_transform(position: &GridPosition) -> Vec2 {
     Vec2::new(
-        (-(GRID_WIDTH as f32) / 2. + position.x as f32) * TILE_SIZE,
+        (-(GRID_WIDTH as f32) / 2. + position.x as f32 + 0.5) * TILE_SIZE,
         -(GRID_HEIGHT as f32 / 2. - position.y as f32) * TILE_SIZE,
     )
 }
@@ -97,7 +97,7 @@ fn spawn_grid(mut commands: Commands, textures: Res<TextureAssets>) {
             commands.spawn((
                 Sprite::from_image(textures.tile.clone()),
                 Transform::from_translation(Vec3::new(
-                    (-(GRID_WIDTH as f32) / 2. + column as f32) * TILE_SIZE,
+                    (-(GRID_WIDTH as f32) / 2. + column as f32 + 0.5) * TILE_SIZE,
                     (GRID_HEIGHT as f32 / 2. - row as f32) * TILE_SIZE,
                     0.,
                 )),
