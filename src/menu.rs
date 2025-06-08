@@ -12,7 +12,47 @@ impl Plugin for MenuPlugin {
             .add_systems(Update, click_play_button.run_if(in_state(GameState::Menu)))
             .add_systems(OnExit(GameState::Menu), cleanup_menu)
             .add_systems(Update, start_pause.run_if(in_state(GamePhase::Playing)))
-            .add_systems(Update, stop_pause.run_if(in_state(GamePhase::Pause)));
+            .add_systems(Update, stop_pause.run_if(in_state(GamePhase::Pause)))
+            .add_systems(OnEnter(GamePhase::Lost), setup_menu)
+            .add_systems(OnExit(GamePhase::Lost), cleanup_menu)
+            .add_systems(
+                Update,
+                click_restart_button.run_if(in_state(GamePhase::Lost)),
+            );
+    }
+}
+
+fn click_restart_button(
+    input: Res<ButtonInput<KeyCode>>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut interaction_query: Query<
+        (
+            &Interaction,
+            &mut BackgroundColor,
+            &ButtonColors,
+            Option<&ChangeState>,
+        ),
+        (Changed<Interaction>, With<Button>),
+    >,
+) {
+    if input.just_pressed(KeyCode::Enter) {
+        next_state.set(GameState::Restarting);
+        return;
+    }
+    for (interaction, mut color, button_colors, change_state) in &mut interaction_query {
+        match *interaction {
+            Interaction::Pressed => {
+                if let Some(state) = change_state {
+                    next_state.set(state.0.clone());
+                }
+            }
+            Interaction::Hovered => {
+                *color = button_colors.hovered.into();
+            }
+            Interaction::None => {
+                *color = button_colors.normal.into();
+            }
+        }
     }
 }
 
@@ -46,7 +86,7 @@ impl Default for ButtonColors {
 #[derive(Component)]
 struct Menu;
 
-fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>) {
+fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>, state: Res<State<GameState>>) {
     info!("menu");
     commands.spawn((Camera2d, Msaa::Off));
     commands
@@ -78,7 +118,11 @@ fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>) {
                     ChangeState(GameState::Playing),
                 ))
                 .with_child((
-                    Text::new("Play"),
+                    Text::new(if state.get() == &GameState::Menu {
+                        "Play"
+                    } else {
+                        "Try again"
+                    }),
                     TextFont {
                         font_size: 40.0,
                         ..default()

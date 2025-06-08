@@ -36,6 +36,7 @@ enum GameState {
     #[default]
     Loading,
     Playing,
+    Restarting,
     Menu,
 }
 
@@ -47,6 +48,7 @@ enum GamePhase {
     Exploding,
     Waiting,
     Pause,
+    Lost,
 }
 
 pub struct GamePlugin;
